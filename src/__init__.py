@@ -1,0 +1,1 @@
+"""SparkBot - Discord Onboarding Bot with Web Interface"""

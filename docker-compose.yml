@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (optional - comment out if using SQLite)
+  postgres:
+    image: postgres:15-alpine
+    container_name: sparkbot-db
+    environment:
+      POSTGRES_DB: sparkbot
+      POSTGRES_USER: sparkbot
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sparkbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # SparkBot Application
+  app:
+    build: .
+    container_name: sparkbot-app
+    env_file:
+      - .env
+    environment:
+      # Override for PostgreSQL (comment out if using SQLite)
+      DATABASE_URL: postgresql://sparkbot:changeme@postgres:5432/sparkbot
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data  # For SQLite database persistence
+      - ./logs:/app/logs  # For log files
+    restart: unless-stopped
+
+  # Redis Cache (optional)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: sparkbot-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+volumes:
+  postgres_data:
+  # redis_data:

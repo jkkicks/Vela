@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Overview of your SparkBot statistics</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Total Guilds -->
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Total Guilds
+                </dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">
+                    {{ stats.guilds }}
+                </dd>
+            </div>
+        </div>
+
+        <!-- Total Members -->
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Total Members
+                </dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">
+                    {{ stats.members }}
+                </dd>
+            </div>
+        </div>
+
+        <!-- Onboarded -->
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Onboarded
+                </dt>
+                <dd class="mt-1 text-3xl font-semibold text-green-600">
+                    {{ stats.onboarded }}
+                </dd>
+            </div>
+        </div>
+
+        <!-- Pending -->
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Pending
+                </dt>
+                <dd class="mt-1 text-3xl font-semibold text-yellow-600">
+                    {{ stats.pending }}
+                </dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bot Status Card -->
+    {% if bot_info %}
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                    Bot Status
+                </h3>
+                {% if bot_info.online %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <span class="w-2 h-2 mr-2 bg-green-600 rounded-full animate-pulse"></span>
+                    Online
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    <span class="w-2 h-2 mr-2 bg-gray-600 rounded-full"></span>
+                    Offline
+                </span>
+                {% endif %}
+            </div>
+
+            {% if bot_info.online %}
+            <div class="space-y-4">
+                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <svg class="w-5 h-5 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="font-medium">{{ bot_info.name }}</span>
+                </div>
+
+                {% if bot_info.guilds %}
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Connected Servers ({{ bot_info.guilds|length }})</h4>
+                    <div class="space-y-2">
+                        {% for guild in bot_info.guilds %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ guild.name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ guild.id }}</p>
+                            </div>
+                            <span class="text-xs text-gray-600 dark:text-gray-400">{{ guild.member_count }} members</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                The bot is currently offline. Make sure it's running to see live status.
+            </p>
+            {% endif %}
+
+            {% if bot_info.invite_url %}
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Invite Bot to Server
+                </h4>
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        readonly
+                        value="{{ bot_info.invite_url }}"
+                        id="invite-url"
+                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <button
+                        onclick="copyInviteLink()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium transition-colors"
+                    >
+                        Copy
+                    </button>
+                    <a
+                        href="{{ bot_info.invite_url }}"
+                        target="_blank"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm font-medium transition-colors"
+                    >
+                        Open
+                    </a>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Use this link to invite the bot to additional Discord servers
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                Quick Actions
+            </h3>
+            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <a href="/admin/users"
+                   class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    View All Users
+                </a>
+                <a href="/admin/config"
+                   class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Bot Configuration
+                </a>
+                <a href="/admin/logs"
+                   class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    View Audit Logs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyInviteLink() {
+    const input = document.getElementById('invite-url');
+    input.select();
+    input.setSelectionRange(0, 99999); // For mobile devices
+
+    navigator.clipboard.writeText(input.value).then(() => {
+        // Show success feedback
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-blue-600');
+
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-600');
+            button.classList.add('bg-blue-600');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy invite link');
+    });
+}
+</script>
+{% endblock %}
