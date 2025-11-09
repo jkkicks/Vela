@@ -3,7 +3,80 @@
 
 import os
 import sys
+import subprocess
 from pathlib import Path
+
+def is_venv():
+    """Check if currently running in a virtual environment"""
+    return (
+        hasattr(sys, 'real_prefix') or
+        (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix) or
+        os.environ.get('VIRTUAL_ENV') is not None
+    )
+
+def check_venv():
+    """Check if venv exists and create/activate if needed"""
+    venv_path = Path('.venv')
+
+    # If already in a venv, we're good
+    if is_venv():
+        print("✅ Running in virtual environment")
+        return True
+
+    print("📦 Checking virtual environment...")
+
+    # Check if .venv exists
+    if venv_path.exists():
+        print("✅ Virtual environment found at .venv/")
+    else:
+        print("🔨 Creating virtual environment at .venv/...")
+        try:
+            import venv
+            venv.create('.venv', with_pip=True)
+            print("✅ Virtual environment created")
+        except Exception as e:
+            print(f"❌ Failed to create virtual environment: {e}")
+            return False
+
+    # Determine the path to the venv python
+    if sys.platform == 'win32':
+        venv_python = venv_path / 'Scripts' / 'python.exe'
+        venv_pip = venv_path / 'Scripts' / 'pip.exe'
+    else:
+        venv_python = venv_path / 'bin' / 'python'
+        venv_pip = venv_path / 'bin' / 'pip'
+
+    # Check if dependencies are installed
+    print("📦 Checking dependencies...")
+    try:
+        result = subprocess.run(
+            [str(venv_pip), 'show', 'fastapi'],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            # Dependencies not installed
+            print("📥 Installing dependencies (this may take a minute)...")
+            install_result = subprocess.run(
+                [str(venv_pip), 'install', '-r', 'requirements.txt'],
+                capture_output=False  # Show output to user
+            )
+
+            if install_result.returncode != 0:
+                print("❌ Failed to install dependencies")
+                return False
+
+            print("✅ Dependencies installed")
+        else:
+            print("✅ Dependencies already installed")
+    except Exception as e:
+        print(f"⚠️  Could not verify dependencies: {e}")
+
+    # Re-execute this script in the venv
+    print("\n🔄 Restarting in virtual environment...\n")
+    print("-" * 50)
+    os.execv(str(venv_python), [str(venv_python)] + sys.argv)
 
 def check_env():
     """Check if .env file exists and has minimum configuration"""
@@ -66,7 +139,10 @@ def main():
 ╚═══════════════════════════════════════╝
     """)
 
-    print("Checking prerequisites...")
+    print("Checking prerequisites...\n")
+
+    # Check and setup virtual environment (will re-execute if needed)
+    check_venv()
 
     # Check environment
     if not check_env():
