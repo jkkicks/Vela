@@ -5,6 +5,7 @@ import os
 import sys
 import signal
 import uvicorn
+import discord
 from pathlib import Path
 
 # Add src to path
@@ -14,7 +15,7 @@ from src.bot.main import VelaBot
 from src.api.main import app
 from src.shared.config import settings
 from src.shared.database import init_database, get_session
-from src.shared.models import Guild
+from src.shared.models import Guild, AdminUser
 from sqlmodel import select
 
 # Custom logging filter to suppress expected CancelledError during shutdown
@@ -70,16 +71,16 @@ async def run_bot():
                 try:
                     from src.shared.config import decrypt_value
                     token = decrypt_value(guild.bot_token)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Failed to decrypt token from database: {e}")
                     # Fall back to environment variable if decryption fails
                     token = settings.bot_token
 
         if not token:
             token = settings.bot_token
 
-        if not token:
-            logger.warning("No bot token configured. Bot will not start.")
-            logger.info("Please configure the bot via the web interface at http://localhost:8000")
+        if not token or token == "your_bot_token_here":
+            logger.info("No valid bot token configured. Bot will not start until setup is complete.")
             return
 
         logger.info("Starting Discord bot...")
@@ -90,9 +91,15 @@ async def run_bot():
         if bot_instance and not bot_instance.is_closed():
             await bot_instance.close()
         raise
+    except discord.LoginFailure as e:
+        logger.error(f"Failed to login to Discord: Invalid token")
+        print(f"❌ Failed to start Discord bot: Invalid or improper token")
+        print(f"   Please configure a valid bot token via the setup interface")
+        # Don't raise - allow the application to continue running
     except Exception as e:
         logger.error(f"Bot error: {e}")
-        raise
+        print(f"❌ Discord bot error: {e}")
+        # Don't raise - allow the application to continue running
 
 
 async def run_api():
@@ -171,7 +178,13 @@ async def main():
     logger.info("Initializing database...")
     is_initialized = init_database()
 
-    if not is_initialized:
+    # Check if setup has been completed (admin user exists)
+    setup_completed = False
+    with next(get_session()) as session:
+        admin_exists = session.exec(select(AdminUser).limit(1)).first()
+        setup_completed = admin_exists is not None
+
+    if not setup_completed:
         print("\n⚠️  First-run setup required!")
         print(f"Please visit http://localhost:{settings.api_port}/setup to complete initial configuration\n")
 
@@ -182,11 +195,13 @@ async def main():
     api_task = asyncio.create_task(run_api())
     tasks.append(api_task)
 
-    # Only start bot if configured
+    # Only start bot if setup is completed
     bot_task = None
-    if is_initialized or settings.bot_token:
+    if setup_completed:
         bot_task = asyncio.create_task(run_bot())
         tasks.append(bot_task)
+    else:
+        logger.info("Skipping Discord bot startup - setup not completed")
 
     print(f"\n✅ Web interface available at: http://localhost:{settings.api_port}")
     print(f"📚 API documentation at: http://localhost:{settings.api_port}/docs\n")
