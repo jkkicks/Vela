@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full text-center">
+        <div class="mb-8">
+            <h1 class="text-9xl font-bold text-red-600 dark:text-red-400">500</h1>
+        </div>
+
+        <div class="space-y-4">
+            <svg class="mx-auto w-24 h-24 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">
+                Internal Server Error
+            </h2>
+
+            <p class="text-lg text-gray-600 dark:text-gray-400">
+                Something went wrong on our end. We're working to fix it.
+            </p>
+
+            <div class="mt-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 text-left">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800 dark:text-red-400">
+                            What you can do:
+                        </h3>
+                        <ul class="mt-2 text-sm text-red-700 dark:text-red-300 list-disc list-inside space-y-1">
+                            <li>Try refreshing the page</li>
+                            <li>Go back and try again</li>
+                            <li>Check the server logs for details</li>
+                            <li>Contact your administrator if the problem persists</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="window.location.reload()"
+                   class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Refresh Page
+                </button>
+
+                <a href="/"
+                   class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    Go Home
+                </a>
+            </div>
+
+            <div class="mt-8 text-sm text-gray-500 dark:text-gray-400">
+                <p>Error logged. Our team has been notified.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,71 @@
+# Environment files
 *.env
+.env.local
+.env.*.local
+
+# Virtual Environments
 /.venv
+/venv
+/ENV
+/env
+/.virtualenv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 member_data.db
+vela.db
+/data/
+
+# Logs
+*.log
 discord.log
-SparkBot.log
+Vela.log
+/logs/
+
+# Planning (private)
+/planning
+
+# Static assets (downloaded)
+/static/htmx.min.js
+/static/alpine.min.js
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+*.cover
+.hypothesis/
+
+# OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*~

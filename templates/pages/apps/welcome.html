@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/admin/apps" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Welcome System</h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Configure welcome messages for new members joining {{ guild.guild_name if guild else 'your server' }}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+            <span class="px-3 py-1 text-sm rounded-full {% if guild and guild.settings.get('welcome_enabled', True) %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                {% if guild and guild.settings.get('welcome_enabled', True) %}Enabled{% else %}Disabled{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Welcome Channel Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Welcome Channel</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Select the channel where the welcome message will be posted when new members join
+        </p>
+
+        <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex-1">
+                {% if welcome_channel %}
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">#{{ welcome_channel.name or 'welcome' }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ welcome_channel.channel_id }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Not Configured</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Please configure a welcome channel</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <button
+                onclick="configureChannel()"
+                class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                {% if welcome_channel %}Change Channel{% else %}Set Channel{% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Welcome Message Settings -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Welcome Message Settings</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Customize how the welcome message appears to new members
+        </p>
+
+        <div class="space-y-4">
+            <!-- Enable Welcome Messages -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Enable Welcome Messages</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Automatically post welcome message when new members join
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="welcome_enabled"
+                        onchange="updateSetting('welcome_enabled', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('welcome_enabled', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Show Onboarding Button -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Show Onboarding Button</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Include a button in the welcome message for members to complete onboarding
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="show_onboarding_button"
+                        onchange="updateSetting('show_onboarding_button', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('show_onboarding_button', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Delete Duplicate Messages -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Single Message Mode</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Only keep one welcome message in the channel (delete duplicates)
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="single_welcome_message"
+                        onchange="updateSetting('single_welcome_message', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('single_welcome_message', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Message Preview</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            This is how the welcome message will appear in Discord
+        </p>
+
+        <!-- Discord-style embed preview -->
+        <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border-l-4 border-blue-500">
+            <div class="flex items-center mb-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    B
+                </div>
+                <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-white">{{ guild.guild_name if guild else 'Bot' }}</span>
+                <span class="ml-2 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">BOT</span>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded p-4 border-l-4 border-blue-500">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Welcome to the Server!</h3>
+                <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">Here's how to get started:</p>
+                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    <div><strong>Step 1:</strong> Read the server rules in #rules channel.</div>
+                    <div><strong>Step 2:</strong> Check out some cool posts over in #projects.</div>
+                    <div><strong>Step 3:</strong> Complete Onboarding procedure to unlock the rest of the server.</div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Enjoy your stay!</p>
+            </div>
+            {% if guild and guild.settings.get('show_onboarding_button', True) %}
+            <div class="mt-3">
+                <button class="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700">
+                    Complete Onboarding
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">Need Help?</h3>
+        <p class="text-sm text-blue-700 dark:text-blue-300">
+            The welcome system automatically posts a message in your designated channel when new members join. Make sure your bot has permission to send messages and embeds in the welcome channel. You can customize the message content in the bot's code.
+        </p>
+    </div>
+</div>
+
+<!-- Channel Configuration Modal -->
+<div id="channelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configure Welcome Channel</h3>
+            <div class="mt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Channel ID
+                </label>
+                <input
+                    type="number"
+                    id="channelIdInput"
+                    placeholder="e.g. 1234567890123456789"
+                    value="{{ welcome_channel.channel_id if welcome_channel else '' }}"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Right-click a channel in Discord and select "Copy Channel ID"
+                </p>
+            </div>
+            <div class="mt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Channel Name (optional)
+                </label>
+                <input
+                    type="text"
+                    id="channelNameInput"
+                    placeholder="e.g. welcome"
+                    value="{{ welcome_channel.name if welcome_channel else '' }}"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button
+                    onclick="saveChannel()"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Save
+                </button>
+                <button
+                    onclick="closeModal()"
+                    class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function configureChannel() {
+    document.getElementById('channelModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('channelModal').classList.add('hidden');
+}
+
+async function saveChannel() {
+    const channelId = document.getElementById('channelIdInput').value;
+    const channelName = document.getElementById('channelNameInput').value;
+
+    if (!channelId) {
+        alert('Please enter a channel ID');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/channel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                channel_id: parseInt(channelId),
+                channel_type: 'welcome',
+                name: channelName || null
+            })
+        });
+
+        if (response.ok) {
+            alert('Welcome channel configured successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to configure channel'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error configuring channel');
+    }
+}
+
+async function updateSetting(key, value) {
+    try {
+        const response = await fetch('/api/config/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: key,
+                value: value
+            })
+        });
+
+        if (response.ok) {
+            console.log(`Setting ${key} updated to ${value}`);
+            // Update status badge if welcome_enabled changed
+            if (key === 'welcome_enabled') {
+                window.location.reload();
+            }
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to update setting'}`);
+            // Revert checkbox
+            document.getElementById(key).checked = !value;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating setting');
+        // Revert checkbox
+        document.getElementById(key).checked = !value;
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('channelModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

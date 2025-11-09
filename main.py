@@ -12,7 +12,10 @@ import sys
 
 async def welcome_message():
     # Find the #welcome channel
-    welcome_channel_id = int(os.getenv('WELCOME_CHANNEL_ID'))
+    welcome_channel_id = os.getenv('WELCOME_CHANNEL_ID')
+    if not welcome_channel_id:
+        raise ValueError("WELCOME_CHANNEL_ID environment variable is not set")
+    welcome_channel_id = int(welcome_channel_id)
     welcome_channel = discord.utils.get(client.get_all_channels(), id=welcome_channel_id)
 
     # Check if welcome message has already been sent in the channel
@@ -91,7 +94,7 @@ async def add_member_to_role(member, role_name):
 load_dotenv()
 
 # Setup logging
-logging.basicConfig(filename='SparkBot.log', level=logging.INFO)
+logging.basicConfig(filename='Vela.log', level=logging.INFO)
 
 # Define intents
 intents = discord.Intents.all()
@@ -123,32 +126,160 @@ class PersistentViewBot(commands.Bot):
 
 client = PersistentViewBot()
 
-class OnboardModal(discord.ui.Modal, title="Onboarding: "):
-    first_name = discord.ui.TextInput(
-        style=discord.TextStyle.short,
-        label="First name",
-        required=True,
-        placeholder="John "
-    )
-    last_name = discord.ui.TextInput(
-        style=discord.TextStyle.short,
-        label="Last Name",
-        required=True,
-        placeholder="Doe"
-    )
-    async def on_submit(self, interaction: discord.InteractionResponse):
-        await interaction.response.send_message("Thanks for completing Onboarding! If you have any questions, don't hesitate to reach out!", ephemeral=True)
-        #await interaction.response.defer()
-        await update_nickname(member=self.user, firstname=self.first_name.value, lastname=self.last_name.value)
-        await update_onboard(member=self.user)
-        role_to_add = "Maker"
-        await add_member_to_role(member=self.user, role_name=role_to_add)
-        # print(f'First name: {self.first_name.value}')
-        # print(f'Last Name: {self.last_name.value}')
-        # print(f'User: {self.user.id}')
-        
-    async def on_error(self, interaction: discord.Interaction, error):
-        ...
+def create_onboard_modal(fields_config, guild_id):
+    """Factory function to create OnboardModal with dynamic fields"""
+
+    # Import here to avoid circular imports
+    from src.shared.database import get_session
+    from src.shared.models import Member, Guild, Role
+    from sqlmodel import Session, select
+    import re
+
+    class DynamicOnboardModal(discord.ui.Modal, title="Onboarding"):
+        def __init__(self):
+            super().__init__()
+            self.guild_id = guild_id
+            self.field_mapping = {}  # Maps field names to TextInput objects
+
+            # Default fields if no configuration
+            if not fields_config:
+                fields_config_default = [
+                    {"name": "first_name", "label": "First name", "placeholder": "John", "max_length": 100, "required": True},
+                    {"name": "last_name", "label": "Last Name", "placeholder": "Doe", "max_length": 100, "required": True}
+                ]
+                config_to_use = fields_config_default
+            else:
+                config_to_use = fields_config
+
+            # Dynamically create TextInput fields (max 5)
+            for field_config in config_to_use[:5]:
+                text_input = discord.ui.TextInput(
+                    style=discord.TextStyle.short,
+                    label=field_config['label'],
+                    placeholder=field_config.get('placeholder', ''),
+                    required=field_config.get('required', True),
+                    max_length=min(field_config.get('max_length', 100), 1000)  # Discord limit
+                )
+                self.add_item(text_input)
+                self.field_mapping[field_config['name']] = text_input
+
+        async def on_submit(self, interaction: discord.Interaction):
+            try:
+                # Get database session
+                session: Session = next(get_session())
+
+                try:
+                    # Get guild settings
+                    guild = session.exec(
+                        select(Guild).where(Guild.guild_id == self.guild_id)
+                    ).first()
+
+                    if not guild:
+                        await interaction.response.send_message(
+                            "Configuration error. Please contact an administrator.",
+                            ephemeral=True
+                        )
+                        return
+
+                    settings = guild.settings or {}
+
+                    # Collect field values
+                    field_values = {}
+                    for field_name, text_input in self.field_mapping.items():
+                        field_values[field_name] = text_input.value
+
+                    # Get or create member record
+                    member_record = session.exec(
+                        select(Member).where(
+                            Member.user_id == interaction.user.id,
+                            Member.guild_id == self.guild_id
+                        )
+                    ).first()
+
+                    if not member_record:
+                        member_record = Member(
+                            user_id=interaction.user.id,
+                            guild_id=self.guild_id,
+                            username=interaction.user.name,
+                            join_datetime=interaction.user.joined_at,
+                            onboarding_status=0
+                        )
+                        session.add(member_record)
+
+                    # Store field values in extra_data
+                    if not member_record.extra_data:
+                        member_record.extra_data = {}
+                    member_record.extra_data.update(field_values)
+
+                    # Update legacy fields for backward compatibility
+                    if 'first_name' in field_values:
+                        member_record.firstname = field_values['first_name']
+                    if 'last_name' in field_values:
+                        member_record.lastname = field_values['last_name']
+
+                    # Update onboarding status
+                    member_record.onboarding_status = 1
+                    member_record.onboarding_completed_at = datetime.now(timezone.utc)
+
+                    # Apply nickname template
+                    if settings.get('set_nickname', True):
+                        template = settings.get('nickname_template', '{first_name} {last_name}')
+                        nickname = template
+
+                        # Replace placeholders with actual values
+                        for field_name, value in field_values.items():
+                            nickname = nickname.replace(f'{{{field_name}}}', value)
+
+                        # Truncate to Discord's 32 character limit
+                        nickname = nickname[:32]
+                        member_record.nickname = nickname
+
+                        try:
+                            await interaction.user.edit(nick=nickname)
+                        except Exception as e:
+                            logging.error(f"Failed to set nickname: {e}")
+
+                    # Auto-assign role if enabled
+                    if settings.get('auto_role', True):
+                        onboarded_role = session.exec(
+                            select(Role).where(
+                                Role.guild_id == self.guild_id,
+                                Role.role_type == 'onboarded'
+                            )
+                        ).first()
+
+                        if onboarded_role:
+                            role = discord.utils.get(interaction.guild.roles, id=onboarded_role.role_id)
+                            if role:
+                                try:
+                                    await interaction.user.add_roles(role)
+                                except Exception as e:
+                                    logging.error(f"Failed to add role: {e}")
+
+                    # Commit changes
+                    from sqlalchemy.orm import attributes
+                    attributes.flag_modified(member_record, "extra_data")
+                    session.commit()
+
+                    await interaction.response.send_message(
+                        "Thanks for completing Onboarding! If you have any questions, don't hesitate to reach out!",
+                        ephemeral=True
+                    )
+
+                finally:
+                    session.close()
+
+            except Exception as e:
+                logging.error(f"Error in onboarding: {e}")
+                await interaction.response.send_message(
+                    "An error occurred during onboarding. Please try again or contact an administrator.",
+                    ephemeral=True
+                )
+
+        async def on_error(self, interaction: discord.Interaction, error):
+            logging.error(f"Modal error: {error}")
+
+    return DynamicOnboardModal
 
 class OnboardButtons(discord.ui.View):
     def __init__(self):
@@ -156,13 +287,51 @@ class OnboardButtons(discord.ui.View):
                                         #Button that sends modal (Popup)
     @discord.ui.button(label="Complete Onboarding", style=discord.ButtonStyle.green, custom_id="1")
     async def onboard(self, interaction: discord.InteractionResponse, button: discord.ui.Button):
-        onboard_modal = OnboardModal()
-        onboard_modal.user = interaction.user
+        # Import here to avoid circular imports
+        from src.shared.database import get_session
+        from src.shared.models import Member, Guild
+        from sqlmodel import Session, select
 
-        if interaction.user.nick:
-            await interaction.response.send_message(content="You have already been onboarded! To change your onboarding status, please reach out to the Moderators", ephemeral=True)
-        else:
+        # Get database session
+        session: Session = next(get_session())
+
+        try:
+            guild_id = interaction.guild.id
+
+            # Check if user already onboarded
+            member_record = session.exec(
+                select(Member).where(
+                    Member.user_id == interaction.user.id,
+                    Member.guild_id == guild_id
+                )
+            ).first()
+
+            # Check prevent_reonboarding setting
+            guild = session.exec(
+                select(Guild).where(Guild.guild_id == guild_id)
+            ).first()
+
+            settings = guild.settings if guild else {}
+
+            if member_record and member_record.onboarding_status > 0:
+                if settings.get('prevent_reonboarding', True):
+                    await interaction.response.send_message(
+                        content="You have already been onboarded! To change your onboarding status, please reach out to the Moderators",
+                        ephemeral=True
+                    )
+                    return
+
+            # Get field configuration from database
+            fields_config = settings.get('onboarding_fields', [])
+
+            # Create modal with configured fields
+            ModalClass = create_onboard_modal(fields_config, guild_id)
+            onboard_modal = ModalClass()
+
             await interaction.response.send_modal(onboard_modal)
+
+        finally:
+            session.close()
 
 
                                         #Button that sends ephemeral embed describing the onboarding process
@@ -227,7 +396,12 @@ async def on_ready():
         for row in c.fetchall():
             print(f'  ID: {row[0]} User: {row[1]} Nick: {row[2]}')
 
-    print("Ready.")
+    # Display web dashboard info
+    api_port = os.getenv('API_PORT', '8000')
+    print("\n" + "="*50)
+    print("Bot is ready!")
+    print(f"Web Dashboard: http://localhost:{api_port}")
+    print("="*50 + "\n")
 
 @client.command(name='reinit')
 async def cmd_reinit(ctx):

@@ -1,0 +1,1 @@
+"""Vela - Discord Onboarding Bot with Web Interface"""
