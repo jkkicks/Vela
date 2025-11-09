@@ -1,6 +1,7 @@
 """Database configuration with SQLite/PostgreSQL support"""
 import os
-from sqlmodel import create_engine, SQLModel, Session
+from sqlmodel import create_engine, SQLModel, Session as SQLModelSession
+from sqlalchemy.orm import sessionmaker
 from typing import Generator
 import logging
 
@@ -31,6 +32,9 @@ else:
         pool_pre_ping=True
     )
 
+# Create session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=SQLModelSession)
+
 
 def create_db_and_tables():
     """Create all database tables"""
@@ -38,9 +42,9 @@ def create_db_and_tables():
     logger.info("Database tables created successfully")
 
 
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[SQLModelSession, None, None]:
     """Get a database session"""
-    with Session(engine) as session:
+    with SQLModelSession(engine) as session:
         yield session
 
 
@@ -49,7 +53,7 @@ def init_database():
     create_db_and_tables()
 
     # Check if this is first run (no admin users)
-    with Session(engine) as session:
+    with SQLModelSession(engine) as session:
         from src.shared.models import AdminUser
         from sqlmodel import select
 

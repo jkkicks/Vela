@@ -1,141 +1,354 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Vela</title>
 
-{% block content %}
-<div class="min-h-screen flex items-center justify-center">
-    <div class="max-w-2xl w-full space-y-8">
-        <div class="text-center">
-            <svg class="mx-auto w-24 h-24 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-            </svg>
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-                Initial Setup
-            </h2>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Configure your Vela for the first time
-            </p>
-        </div>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-        <div class="mt-8 bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <form action="/setup/initialize" method="POST" class="space-y-6">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .vela-logo-animation {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .form-animation {
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .vela-glow {
+            text-shadow: 0 0 40px rgba(102, 126, 234, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 min-h-screen">
+    <div class="min-h-screen flex items-center justify-center px-4 py-12">
+        <div class="max-w-2xl w-full space-y-10">
+            <!-- Vela Logo and Branding -->
+            <div class="text-center vela-logo-animation">
+                <!-- Large Vela Logo -->
+                <div class="inline-flex items-center justify-center mb-6">
+                    <svg class="w-24 h-24 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+
+                <!-- Vela Text -->
+                <h1 class="text-6xl font-extrabold text-white mb-4 vela-glow tracking-tight">
+                    Vela
+                </h1>
+
+                <div class="inline-block px-4 py-2 bg-purple-500/20 rounded-full border border-purple-400/30 mb-6">
+                    <p class="text-purple-300 text-sm font-medium">
+                        Initial Setup
+                    </p>
+                </div>
+
+                <p class="text-gray-300 text-lg max-w-md mx-auto">
+                    {% if discord_user %}
+                        Complete the configuration to get started
+                    {% else %}
+                        Authenticate with Discord to begin your journey
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Setup Card -->
+            <div class="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden form-animation">
+            {% if not discord_user %}
+                <!-- Show Discord OAuth login button -->
+                <div class="p-10 text-center space-y-8">
+                    {% if oauth_configured %}
+                        <div class="flex flex-col items-center space-y-6">
+                            <!-- Discord Icon -->
+                            <div class="p-6 bg-indigo-500/10 rounded-full border-2 border-indigo-500/30">
+                                <svg class="w-16 h-16 text-indigo-400" viewBox="0 0 71 55" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/>
+                                </svg>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-xl font-semibold text-white">Connect with Discord</h3>
+                                <p class="text-gray-400 max-w-sm">
+                                    To set up your Vela bot, authenticate with your Discord account to continue.
+                                </p>
+                            </div>
+
+                            <a href="/setup/auth/discord"
+                               class="group inline-flex items-center px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-indigo-500/50">
+                                <svg class="w-5 h-5 mr-3" viewBox="0 0 71 55" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/>
+                                </svg>
+                                Continue with Discord
+                                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                        </div>
+                    {% else %}
+                        <!-- OAuth Not Configured Error -->
+                        <div class="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-6">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-8 w-8 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 text-left">
+                                    <h3 class="text-lg font-semibold text-red-300 mb-2">Configuration Required</h3>
+                                    <p class="text-sm text-red-200">
+                                        Discord OAuth is not configured. Please set <code class="bg-red-900/30 px-2 py-1 rounded">DISCORD_CLIENT_ID</code> and <code class="bg-red-900/30 px-2 py-1 rounded">DISCORD_CLIENT_SECRET</code> in your .env file.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <!-- Authenticated - Show setup form -->
+                <div class="p-10">
+                    <!-- Discord User Info Display -->
+                    <div class="mb-8 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl p-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                {% if discord_user.avatar %}
+                                    <img class="h-14 w-14 rounded-full ring-2 ring-indigo-400/50" src="https://cdn.discordapp.com/avatars/{{ discord_user.discord_id }}/{{ discord_user.avatar }}.png" alt="{{ discord_user.username }}">
+                                {% else %}
+                                    <div class="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-indigo-400/50">
+                                        {{ discord_user.username[0]|upper }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <p class="text-white font-semibold">
+                                        {{ discord_user.username }}
+                                    </p>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        Super Admin
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-400 mt-1">
+                                    You'll have full access to manage this bot
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+            <form action="/setup/initialize" method="POST" class="space-y-8">
+                <!-- Environment Hint -->
+                {% if env_defaults.guild_id or env_defaults.bot_token %}
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm text-blue-200">
+                                Some fields have been pre-filled from your <code class="bg-blue-900/30 px-1.5 py-0.5 rounded text-xs">.env</code> file to save you time!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Guild Configuration -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Guild Configuration</h3>
+                    <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        Guild Configuration
+                    </h3>
 
-                    <div class="space-y-4">
+                    <div class="space-y-5">
                         <div>
-                            <label for="guild_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Guild ID
+                            <label for="guild_id" class="block text-sm font-medium text-gray-300 mb-2">
+                                Discord Server ID
+                                {% if env_defaults.guild_id %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-300 border border-green-400/30">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    From .env
+                                </span>
+                                {% endif %}
                             </label>
                             <input type="text" name="guild_id" id="guild_id" required
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   value="{{ env_defaults.guild_id }}"
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                                    placeholder="123456789012345678">
-                            <p class="mt-1 text-xs text-gray-500">Your Discord server's ID</p>
+                            <p class="mt-2 text-xs text-gray-400">Your Discord server's unique ID</p>
                         </div>
 
                         <div>
-                            <label for="guild_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Guild Name
+                            <label for="guild_name" class="block text-sm font-medium text-gray-300 mb-2">
+                                Server Name
                             </label>
                             <input type="text" name="guild_name" id="guild_name" required
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                                    placeholder="My Awesome Server">
                         </div>
 
                         <div>
-                            <label for="bot_token" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <label for="bot_token" class="block text-sm font-medium text-gray-300 mb-2">
                                 Bot Token
+                                {% if env_defaults.bot_token %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-300 border border-green-400/30">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    From .env
+                                </span>
+                                {% endif %}
                             </label>
                             <input type="password" name="bot_token" id="bot_token" required
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   value="{{ env_defaults.bot_token }}"
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
                                    placeholder="Your bot token from Discord Developer Portal">
-                            <p class="mt-1 text-xs text-gray-500">This will be encrypted and stored securely</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Configuration -->
-                <div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Admin Configuration</h3>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label for="discord_admin_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Your Discord User ID
-                            </label>
-                            <input type="text" name="discord_admin_id" id="discord_admin_id" required
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   placeholder="123456789012345678">
-                            <p class="mt-1 text-xs text-gray-500">You'll be the super admin</p>
-                        </div>
-
-                        <div>
-                            <label for="discord_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Your Discord Username
-                            </label>
-                            <input type="text" name="discord_username" id="discord_username" required
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   placeholder="YourUsername#1234">
+                            <p class="mt-2 text-xs text-gray-400 flex items-center">
+                                <svg class="w-4 h-4 mr-1 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                This will be encrypted and stored securely
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Optional Configuration -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Optional Configuration</h3>
+                    <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        Optional Settings
+                    </h3>
 
-                    <div class="space-y-4">
-                        <div>
-                            <label for="welcome_channel_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="md:col-span-2">
+                            <label for="welcome_channel_id" class="block text-sm font-medium text-gray-300 mb-2">
                                 Welcome Channel ID
                             </label>
                             <input type="text" name="welcome_channel_id" id="welcome_channel_id"
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                                    placeholder="123456789012345678 (optional)">
+                            <p class="mt-2 text-xs text-gray-400">Channel where new members will be greeted</p>
                         </div>
 
                         <div>
-                            <label for="onboarded_role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <label for="onboarded_role_id" class="block text-sm font-medium text-gray-300 mb-2">
                                 Onboarded Role ID
                             </label>
                             <input type="text" name="onboarded_role_id" id="onboarded_role_id"
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   placeholder="123456789012345678 (optional)">
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                   placeholder="123456789012345678">
                         </div>
 
                         <div>
-                            <label for="onboarded_role_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <label for="onboarded_role_name" class="block text-sm font-medium text-gray-300 mb-2">
                                 Onboarded Role Name
                             </label>
                             <input type="text" name="onboarded_role_name" id="onboarded_role_name"
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   placeholder="Member (optional)">
+                                   class="block w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                   placeholder="Member">
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4">
-                    <div class="flex">
+                <!-- Info Alert -->
+                <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-5">
+                    <div class="flex items-start space-x-3">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            <svg class="h-6 w-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                             </svg>
                         </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-yellow-700 dark:text-yellow-400">
-                                This setup can only be completed once. After initialization, you'll need to use Discord OAuth to log in.
+                        <div class="flex-1">
+                            <p class="text-sm text-purple-200 leading-relaxed">
+                                This setup can only be completed once. After initialization, you'll use Discord OAuth to access the admin panel.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div>
+                <!-- Submit Button -->
+                <div class="pt-4">
                     <button type="submit"
-                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            class="group w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/50">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
                         Complete Setup
+                        <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
                     </button>
                 </div>
             </form>
+                </div>
+            {% endif %}
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Floating particles background effect -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
+        <div class="absolute top-1/3 right-1/4 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <style>
+        @keyframes blob {
+            0%, 100% {
+                transform: translate(0px, 0px) scale(1);
+            }
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+        }
+        .animate-blob {
+            animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+    </style>
+</body>
+</html>

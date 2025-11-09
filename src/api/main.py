@@ -13,6 +13,7 @@ from src.shared.config import settings
 from src.shared.database import init_database, get_session
 from src.shared.models import AdminUser, Guild
 from src.api.routers import auth, admin, htmx, api, setup
+from src.api.routers.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,14 @@ templates = Jinja2Templates(directory=str(PROJECT_ROOT / "templates"))
 async def lifespan(app: FastAPI):
     """Handle application startup and shutdown"""
     import asyncio
+    import sys
+
+    # Validate critical security settings before startup
+    if not settings.api_secret_key or settings.api_secret_key == "change-this-secret-key-in-production":
+        logger.error("SECURITY ERROR: api_secret_key is not set or using default value!")
+        logger.error("Please set a secure api_secret_key in your .env file")
+        logger.error("Application startup blocked for security reasons")
+        sys.exit(1)
 
     # Startup
     logger.info("Starting FastAPI application")
@@ -57,6 +66,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add setup check middleware
+@app.middleware("http")
+async def setup_check_middleware(request: Request, call_next):
+    """Redirect to setup if no admins exist, except for setup/auth routes"""
+    # Skip middleware for static files, health check, and setup/auth routes
+    if (request.url.path.startswith("/static") or
+        request.url.path.startswith("/setup") or
+        request.url.path.startswith("/auth") or
+        request.url.path == "/health"):
+        return await call_next(request)
+
+    # Check if admin exists
+    from src.shared.database import SessionLocal
+    with SessionLocal() as session:
+        admin_exists = session.exec(select(AdminUser).limit(1)).first()
+
+        if not admin_exists and request.url.path != "/setup":
+            # No admin exists, redirect to setup
+            return RedirectResponse(url="/setup", status_code=302)
+
+    return await call_next(request)
+
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
@@ -87,10 +118,12 @@ async def index(request: Request, session: Session = Depends(get_session)):
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, session: Session = Depends(get_session)):
+async def dashboard(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
     """Dashboard page"""
-    # TODO: Add authentication check
-
     # Get statistics
     from src.shared.models import Member
 
@@ -124,6 +157,7 @@ async def dashboard(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse("pages/dashboard.html", {
         "request": request,
         "title": "Dashboard",
+        "current_user": current_user,
         "stats": {
             "guilds": len(total_guilds),
             "members": len(total_members),

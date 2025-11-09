@@ -112,12 +112,21 @@ async def discord_callback(
     response: Response,
     session: Session = Depends(get_session)
 ):
-    """Handle Discord OAuth callback"""
-    # Verify CSRF token
-    if state not in csrf_tokens:
-        raise HTTPException(400, "Invalid state token")
+    """Handle Discord OAuth callback for both regular login and setup"""
+    # Check if this is a setup flow (state starts with "setup:")
+    is_setup_flow = state.startswith("setup:")
 
-    del csrf_tokens[state]
+    # Verify CSRF token (check both regular and setup token stores)
+    if is_setup_flow:
+        # Import setup tokens
+        from src.api.routers.setup import setup_csrf_tokens, setup_oauth_sessions
+        if state not in setup_csrf_tokens:
+            raise HTTPException(400, "Invalid state token")
+        del setup_csrf_tokens[state]
+    else:
+        if state not in csrf_tokens:
+            raise HTTPException(400, "Invalid state token")
+        del csrf_tokens[state]
 
     if not settings.discord_client_id or not settings.discord_client_secret:
         raise HTTPException(500, "Discord OAuth not configured")
@@ -155,6 +164,42 @@ async def discord_callback(
 
         discord_user = user_response.json()
 
+        # Handle setup flow differently
+        if is_setup_flow:
+            # Create a temporary setup session
+            import secrets
+            from src.api.routers.setup import setup_oauth_sessions
+
+            session_id = secrets.token_urlsafe(32)
+            setup_oauth_sessions[session_id] = {
+                "discord_id": discord_user['id'],
+                "username": discord_user['username'],
+                "avatar": discord_user.get('avatar'),
+                "created_at": datetime.utcnow()
+            }
+
+            # Clean old sessions (older than 1 hour)
+            cutoff = datetime.utcnow() - timedelta(hours=1)
+            sessions_copy = setup_oauth_sessions.copy()
+            for sess_id, sess_data in sessions_copy.items():
+                if sess_data.get('created_at', datetime.min) < cutoff:
+                    del setup_oauth_sessions[sess_id]
+
+            # Set setup session cookie and redirect back to setup page
+            redirect = RedirectResponse(url="/setup", status_code=302)
+            redirect.set_cookie(
+                key="setup_session",
+                value=session_id,
+                httponly=True,
+                secure=False,  # Set to True in production with HTTPS
+                samesite="lax",
+                max_age=3600  # 1 hour
+            )
+
+            logger.info(f"User {discord_user['username']} authenticated for setup")
+            return redirect
+
+        # Regular login flow
         # Check if user is admin in database
         admin = session.exec(
             select(AdminUser).where(AdminUser.discord_id == int(discord_user['id']))
