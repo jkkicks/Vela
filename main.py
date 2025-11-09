@@ -12,7 +12,10 @@ import sys
 
 async def welcome_message():
     # Find the #welcome channel
-    welcome_channel_id = int(os.getenv('WELCOME_CHANNEL_ID'))
+    welcome_channel_id = os.getenv('WELCOME_CHANNEL_ID')
+    if not welcome_channel_id:
+        raise ValueError("WELCOME_CHANNEL_ID environment variable is not set")
+    welcome_channel_id = int(welcome_channel_id)
     welcome_channel = discord.utils.get(client.get_all_channels(), id=welcome_channel_id)
 
     # Check if welcome message has already been sent in the channel
@@ -227,7 +230,12 @@ async def on_ready():
         for row in c.fetchall():
             print(f'  ID: {row[0]} User: {row[1]} Nick: {row[2]}')
 
-    print("Ready.")
+    # Display web dashboard info
+    api_port = os.getenv('API_PORT', '8000')
+    print("\n" + "="*50)
+    print("Bot is ready!")
+    print(f"Web Dashboard: http://localhost:{api_port}")
+    print("="*50 + "\n")
 
 @client.command(name='reinit')
 async def cmd_reinit(ctx):

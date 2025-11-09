@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/admin/apps" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Onboarding System</h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Configure how new members are onboarded in {{ guild.guild_name if guild else 'your server' }}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+            <span class="px-3 py-1 text-sm rounded-full {% if guild and guild.settings.get('onboarding_enabled', True) %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                {% if guild and guild.settings.get('onboarding_enabled', True) %}Enabled{% else %}Disabled{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Role Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarded Role</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Select the role that will be assigned to members after they complete onboarding
+        </p>
+
+        <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex-1">
+                {% if onboarded_role %}
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">@{{ onboarded_role.role_name }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ onboarded_role.role_id }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Not Configured</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Please configure an onboarded role</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <button
+                onclick="configureRole()"
+                class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                {% if onboarded_role %}Change Role{% else %}Set Role{% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Onboarding Settings -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarding Settings</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Configure what happens during the onboarding process
+        </p>
+
+        <div class="space-y-4">
+            <!-- Enable Onboarding -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Enable Onboarding</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Allow members to complete the onboarding process
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="onboarding_enabled"
+                        onchange="updateSetting('onboarding_enabled', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('onboarding_enabled', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Auto-assign Role -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Auto-assign Role</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Automatically assign onboarded role after completion
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="auto_role"
+                        onchange="updateSetting('auto_role', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('auto_role', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Set Nickname -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Set Nickname</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Change user's nickname to their provided first and last name
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="set_nickname"
+                        onchange="updateSetting('set_nickname', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('set_nickname', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Prevent Duplicate Onboarding -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Prevent Re-onboarding</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Prevent members from completing onboarding multiple times
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="prevent_reonboarding"
+                        onchange="updateSetting('prevent_reonboarding', this.checked)"
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('prevent_reonboarding', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Require Email -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
+                <label class="flex items-center justify-between cursor-not-allowed">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Require Email</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Ask for email address during onboarding (coming soon)
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="require_email"
+                        disabled
+                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('require_email', False) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collected Information -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Information Collected</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            The following information is collected during onboarding
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">First Name</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Required field</p>
+                </div>
+            </div>
+
+            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Last Name</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Required field</p>
+                </div>
+            </div>
+
+            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Discord User ID</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Automatically collected</p>
+                </div>
+            </div>
+
+            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Join Date</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Automatically collected</p>
+                </div>
+            </div>
+
+            <div class="flex items-start p-3 bg-gray-100 dark:bg-gray-900 rounded-lg opacity-50">
+                <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-500">Email Address</h4>
+                    <p class="text-xs text-gray-400">Coming soon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal Form -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarding Form Preview</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            This is how the onboarding modal appears to users
+        </p>
+
+        <!-- Discord-style modal preview -->
+        <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 max-w-md mx-auto">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Onboarding</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        First name
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="John"
+                        disabled
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Last Name
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Doe"
+                        disabled
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400" disabled>
+                    Cancel
+                </button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" disabled>
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">How Onboarding Works</h3>
+        <div class="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+            <p>1. New members click the "Complete Onboarding" button in the welcome message</p>
+            <p>2. A modal form appears asking for their first and last name</p>
+            <p>3. When submitted, their information is saved to the database</p>
+            <p>4. Their server nickname is updated (if enabled)</p>
+            <p>5. They receive the configured role (if enabled)</p>
+            <p>6. Members who already completed onboarding will see a message saying they're already onboarded</p>
+        </div>
+    </div>
+</div>
+
+<!-- Role Configuration Modal -->
+<div id="roleModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Configure Onboarded Role</h3>
+            <div class="mt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Role ID
+                </label>
+                <input
+                    type="number"
+                    id="roleIdInput"
+                    placeholder="e.g. 1234567890123456789"
+                    value="{{ onboarded_role.role_id if onboarded_role else '' }}"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Right-click a role in Discord and select "Copy Role ID"
+                </p>
+            </div>
+            <div class="mt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Role Name
+                </label>
+                <input
+                    type="text"
+                    id="roleNameInput"
+                    placeholder="e.g. Member"
+                    value="{{ onboarded_role.role_name if onboarded_role else '' }}"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button
+                    onclick="saveRole()"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Save
+                </button>
+                <button
+                    onclick="closeModal()"
+                    class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function configureRole() {
+    document.getElementById('roleModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('roleModal').classList.add('hidden');
+}
+
+async function saveRole() {
+    const roleId = document.getElementById('roleIdInput').value;
+    const roleName = document.getElementById('roleNameInput').value;
+
+    if (!roleId || !roleName) {
+        alert('Please enter both role ID and name');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/role', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role_id: parseInt(roleId),
+                role_type: 'onboarded',
+                role_name: roleName
+            })
+        });
+
+        if (response.ok) {
+            alert('Role configured successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to configure role'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error configuring role');
+    }
+}
+
+async function updateSetting(key, value) {
+    try {
+        const response = await fetch('/api/config/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: key,
+                value: value
+            })
+        });
+
+        if (response.ok) {
+            console.log(`Setting ${key} updated to ${value}`);
+            // Update status badge if onboarding_enabled changed
+            if (key === 'onboarding_enabled') {
+                window.location.reload();
+            }
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to update setting'}`);
+            // Revert checkbox
+            document.getElementById(key).checked = !value;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating setting');
+        // Revert checkbox
+        document.getElementById(key).checked = !value;
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('roleModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

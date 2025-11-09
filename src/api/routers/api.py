@@ -512,3 +512,65 @@ async def reset_configuration(
     logger.warning(f"Configuration reset by {current_user['username']}")
 
     return {"message": "Configuration reset successfully"}
+
+
+@router.post("/apps/toggle")
+async def toggle_app(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Toggle an app on or off"""
+    data = await request.json()
+    app_name = data.get('app_name')
+    enabled = data.get('enabled')
+
+    if not app_name:
+        raise HTTPException(400, "app_name is required")
+
+    # Map app names to setting keys
+    app_settings_map = {
+        'welcome_system': 'welcome_enabled',
+        'onboarding': 'onboarding_enabled',
+        'member_management': 'member_management_enabled'
+    }
+
+    setting_key = app_settings_map.get(app_name)
+    if not setting_key:
+        raise HTTPException(400, f"Unknown app: {app_name}")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    guild.settings[setting_key] = enabled
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user['guild_id'],
+        user_id=current_user['discord_id'],
+        discord_username=current_user['username'],
+        action="app_toggled",
+        details={
+            "app_name": app_name,
+            "enabled": enabled
+        }
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"App {app_name} {'enabled' if enabled else 'disabled'} by {current_user['username']}")
+
+    return {"message": f"App {app_name} {'enabled' if enabled else 'disabled'} successfully"}

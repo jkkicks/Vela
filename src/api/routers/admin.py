@@ -76,6 +76,107 @@ async def config_page(
     })
 
 
+@router.get("/apps", response_class=HTMLResponse)
+async def apps_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Apps management page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    # Get app configurations from guild settings
+    apps = {}
+    if guild and guild.settings:
+        apps = {
+            'welcome_system': {
+                'enabled': guild.settings.get('welcome_enabled', True)
+            },
+            'onboarding': {
+                'enabled': guild.settings.get('onboarding_enabled', True)
+            },
+            'member_management': {
+                'enabled': guild.settings.get('member_management_enabled', True)
+            }
+        }
+    else:
+        # Default values if no guild settings exist
+        apps = {
+            'welcome_system': {'enabled': True},
+            'onboarding': {'enabled': True},
+            'member_management': {'enabled': True}
+        }
+
+    return templates.TemplateResponse("pages/apps.html", {
+        "request": request,
+        "title": "Apps",
+        "guild": guild,
+        "apps": apps,
+        "current_user": current_user
+    })
+
+
+@router.get("/apps/welcome", response_class=HTMLResponse)
+async def welcome_app_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Welcome System app configuration page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    # Get welcome channel
+    welcome_channel = session.exec(
+        select(Channel).where(
+            Channel.guild_id == current_user['guild_id'],
+            Channel.channel_type == 'welcome'
+        )
+    ).first()
+
+    return templates.TemplateResponse("pages/apps/welcome.html", {
+        "request": request,
+        "title": "Welcome System Configuration",
+        "guild": guild,
+        "welcome_channel": welcome_channel,
+        "current_user": current_user
+    })
+
+
+@router.get("/apps/onboarding", response_class=HTMLResponse)
+async def onboarding_app_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Onboarding app configuration page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    # Get onboarded role
+    onboarded_role = session.exec(
+        select(Role).where(
+            Role.guild_id == current_user['guild_id'],
+            Role.role_type == 'onboarded'
+        )
+    ).first()
+
+    return templates.TemplateResponse("pages/apps/onboarding.html", {
+        "request": request,
+        "title": "Onboarding Configuration",
+        "guild": guild,
+        "onboarded_role": onboarded_role,
+        "current_user": current_user
+    })
+
+
 @router.get("/logs", response_class=HTMLResponse)
 async def logs_page(
     request: Request,
