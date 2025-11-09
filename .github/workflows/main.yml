@@ -3,6 +3,8 @@ name: Build and Deploy Vela
 on:
   push:
     branches: [ "master", "develop" ]
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v2.1.3, etc.
   pull_request:
     branches: [ "master" ]
 
@@ -37,9 +39,10 @@ jobs:
         black --check src/
         ruff check src/
 
-  build-and-push:
+  # Build Docker image on PRs (don't push) to catch issues early
+  docker-build-pr:
     needs: test
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -48,6 +51,35 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image (PR check only)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/vela:pr-${{ github.event.pull_request.number }}
+
+  # Build and push Docker image on release tags only
+  build-and-push:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        # Extract version from tag (v1.2.3 -> 1.2.3)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "major=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
+        echo "minor=$(echo $VERSION | cut -d. -f1,2)" >> $GITHUB_OUTPUT
 
     - name: Login to DockerHub
       uses: docker/login-action@v3
@@ -62,6 +94,8 @@ jobs:
         push: true
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/vela:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/vela:${{ github.sha }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/vela:${{ steps.version.outputs.version }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/vela:${{ steps.version.outputs.major }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/vela:${{ steps.version.outputs.minor }}
         cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vela:buildcache
         cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vela:buildcache,mode=max

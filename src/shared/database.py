@@ -7,11 +7,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Default data directory - always ./data unless overridden
+data_dir = os.getenv('DATA_DIR', './data')
+os.makedirs(data_dir, exist_ok=True)
+
+# Build default SQLite database path
+default_db_path = f"sqlite:///{os.path.join(data_dir, 'vela.db')}"
+
 # Support both SQLite and PostgreSQL via environment variable
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./vela.db"  # Default to SQLite
-)
+DATABASE_URL = os.getenv("DATABASE_URL", default_db_path)
 
 # PostgreSQL: postgresql://user:password@host:port/dbname
 # SQLite: sqlite:///./vela.db

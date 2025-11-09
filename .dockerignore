@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Database files (should use volumes)
+*.db
+*.db-shm
+*.db-wal
+vela.db
+member_data.db
+Deprecated_Example_DB.db
+
+# Logs (should use volumes)
+*.log
+vela.log
+Vela.log
+
+# Environment files (use env_file in docker-compose)
+.env
+.env.*
+
+# Documentation and planning
+docs/
+planning/
+*.md
+README.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Development scripts
+setup_venv.py
+download_assets.py
+test_install.py
+start.py
+stop.py
+
+# Legacy code
+main.py
+
+# Temporary files
+tmp/
+temp/
+*.tmp
