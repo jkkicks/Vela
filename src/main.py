@@ -28,12 +28,17 @@ class SuppressCancelledErrorFilter(logging.Filter):
                 return False
         return True
 
-# Setup logging
+# Setup logging - default to ./data unless overridden
+data_dir = os.getenv('DATA_DIR', './data')
+os.makedirs(data_dir, exist_ok=True)
+
+log_file = os.getenv('LOG_FILE', os.path.join(data_dir, 'vela.log'))
+
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('vela.log'),
+        logging.FileHandler(log_file),
         logging.StreamHandler()
     ]
 )

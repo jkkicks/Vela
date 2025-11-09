@@ -9,6 +9,7 @@ Thank you for considering contributing to Vela! We welcome contributions from ev
 - [Coding Standards](#coding-standards)
 - [Commit Guidelines](#commit-guidelines)
 - [Pull Request Process](#pull-request-process)
+- [Release Process](#release-process)
 
 ## Code of Conduct
 
@@ -297,6 +298,66 @@ Brief description of changes
 - Delete your feature branch
 - Pull the latest main branch
 - Celebrate your contribution! 🎉
+
+## Release Process
+
+For maintainers creating releases:
+
+### Creating a Release
+
+Docker images are automatically built and published when you create a tagged release.
+
+1. **Prepare for release**:
+   ```bash
+   # Ensure you're on master and up to date
+   git checkout master
+   git pull origin master
+
+   # Run tests to verify everything works
+   pytest
+   black --check src/
+   ruff check src/
+   ```
+
+2. **Create and push a version tag**:
+   ```bash
+   # Create a semantic version tag (v1.0.0, v1.2.3, etc.)
+   git tag -a v1.0.0 -m "Release version 1.0.0"
+
+   # Push the tag to GitHub
+   git push origin v1.0.0
+   ```
+
+3. **GitHub Actions will automatically**:
+   - Run all tests
+   - Build the Docker image
+   - Push to Docker Hub with tags:
+     - `latest`
+     - `1.0.0` (full version)
+     - `1` (major version)
+     - `1.0` (major.minor version)
+
+4. **Create GitHub Release** (optional but recommended):
+   - Go to [Releases](https://github.com/jkkicks/Vela/releases)
+   - Click "Create a new release"
+   - Select your tag
+   - Add release notes describing changes
+   - Publish the release
+
+### Version Numbering
+
+We follow [Semantic Versioning](https://semver.org/):
+- **Major** (v1.0.0 → v2.0.0): Breaking changes
+- **Minor** (v1.0.0 → v1.1.0): New features, backward compatible
+- **Patch** (v1.0.0 → v1.0.1): Bug fixes, backward compatible
+
+### Docker Image Tags
+
+After releasing v1.2.3, users can pull:
+- `vela:latest` - Always the newest release
+- `vela:1.2.3` - Specific version
+- `vela:1.2` - Latest patch in 1.2.x
+- `vela:1` - Latest minor in 1.x.x
 
 ## Getting Help
 

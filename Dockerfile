@@ -21,12 +21,12 @@ COPY static/ ./static/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
 
-# Create volume for database
+# Create data directory and set as volume
+RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV DATABASE_URL=sqlite:///./data/vela.db
 
 # Expose port
 EXPOSE 8000

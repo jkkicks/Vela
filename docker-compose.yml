@@ -26,7 +26,7 @@ services:
     env_file:
       - .env
     environment:
-      # Override for PostgreSQL (comment out if using SQLite)
+      # Use PostgreSQL (comment out and use SQLite via .env if preferred)
       DATABASE_URL: postgresql://vela:changeme@postgres:5432/vela
     depends_on:
       postgres:
@@ -34,8 +34,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data  # For SQLite database persistence
-      - ./logs:/app/logs  # For log files
+      - ./data:/app/data      # Persistent data (database, logs)
     restart: unless-stopped
 
   # Redis Cache (optional)

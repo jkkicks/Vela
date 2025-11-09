@@ -19,6 +19,7 @@ Welcome to the Vela documentation! This guide will help you get started with ins
 - [Docker Deployment](deployment/docker.md) - Deploy with Docker and docker-compose
 - [Manual Deployment](deployment/manual.md) - Deploy without containers
 - [Production Setup](deployment/production.md) - Best practices for production
+- [Creating Releases](deployment/releases.md) - How to create versioned releases with automatic Docker builds
 
 ### API Reference
 - [Bot Commands](api/bot-commands.md) - Discord bot command reference
