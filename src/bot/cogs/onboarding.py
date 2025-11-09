@@ -1,4 +1,5 @@
 """Onboarding cog for member management"""
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -18,10 +19,7 @@ class OnboardingCog(commands.Cog):
         self.bot = bot
 
     async def update_member_nickname(
-        self,
-        member: discord.Member,
-        firstname: str,
-        lastname: str
+        self, member: discord.Member, firstname: str, lastname: str
     ):
         """Update member's server nickname"""
         nickname = f"{firstname} {lastname}"
@@ -31,8 +29,7 @@ class OnboardingCog(commands.Cog):
                 # Update database
                 db_member = session.exec(
                     select(Member).where(
-                        Member.user_id == member.id,
-                        Member.guild_id == member.guild.id
+                        Member.user_id == member.id, Member.guild_id == member.guild.id
                     )
                 ).first()
 
@@ -52,15 +49,15 @@ class OnboardingCog(commands.Cog):
                         details={
                             "firstname": firstname,
                             "lastname": lastname,
-                            "nickname": nickname
-                        }
+                            "nickname": nickname,
+                        },
                     )
                     session.add(audit_log)
                     session.commit()
 
             # Update Discord nickname
             await member.edit(nick=nickname)
-            logger.info(f'Updated nickname for {member.name} to {nickname}')
+            logger.info(f"Updated nickname for {member.name} to {nickname}")
             return True
 
         except Exception as e:
@@ -74,8 +71,7 @@ class OnboardingCog(commands.Cog):
                 # Update member status
                 db_member = session.exec(
                     select(Member).where(
-                        Member.user_id == member.id,
-                        Member.guild_id == member.guild.id
+                        Member.user_id == member.id, Member.guild_id == member.guild.id
                     )
                 ).first()
 
@@ -87,8 +83,7 @@ class OnboardingCog(commands.Cog):
                 # Get onboarded role from database
                 onboarded_role = session.exec(
                     select(Role).where(
-                        Role.guild_id == member.guild.id,
-                        Role.role_type == "onboarded"
+                        Role.guild_id == member.guild.id, Role.role_type == "onboarded"
                     )
                 ).first()
 
@@ -98,7 +93,7 @@ class OnboardingCog(commands.Cog):
                     user_id=member.id,
                     discord_username=member.name,
                     action="onboarding_completed",
-                    details={"status": "completed"}
+                    details={"status": "completed"},
                 )
                 session.add(audit_log)
                 session.commit()
@@ -116,7 +111,7 @@ class OnboardingCog(commands.Cog):
             logger.error(f"Error completing onboarding: {e}")
             return False
 
-    @commands.command(name='reinit')
+    @commands.command(name="reinit")
     async def cmd_reinit(self, ctx: commands.Context):
         """Re-initialize a user in the database"""
         try:
@@ -124,8 +119,7 @@ class OnboardingCog(commands.Cog):
                 # Check if member exists
                 db_member = session.exec(
                     select(Member).where(
-                        Member.user_id == ctx.author.id,
-                        Member.guild_id == ctx.guild.id
+                        Member.user_id == ctx.author.id, Member.guild_id == ctx.guild.id
                     )
                 ).first()
 
@@ -136,7 +130,7 @@ class OnboardingCog(commands.Cog):
                         guild_id=ctx.guild.id,
                         username=ctx.author.name,
                         join_datetime=ctx.author.joined_at,
-                        onboarding_status=0
+                        onboarding_status=0,
                     )
                     session.add(new_member)
                     session.commit()
@@ -146,30 +140,24 @@ class OnboardingCog(commands.Cog):
             logger.error(f"Error in reinit command: {e}")
             await ctx.send("❌ Error reinitializing user")
 
-    @commands.command(name='nick')
+    @commands.command(name="nick")
     async def cmd_nick(self, ctx: commands.Context):
         """View current nickname"""
-        await ctx.send(f'You are {ctx.author.nick or ctx.author.name}')
+        await ctx.send(f"You are {ctx.author.nick or ctx.author.name}")
 
-    @commands.command(name='setnick')
+    @commands.command(name="setnick")
     async def cmd_setnick(self, ctx: commands.Context, firstname: str, lastname: str):
         """Change nickname (use two words separated by a space)"""
         success = await self.update_member_nickname(ctx.author, firstname, lastname)
         if success:
-            await ctx.send(f'✅ You are now {ctx.author.nick}')
+            await ctx.send(f"✅ You are now {ctx.author.nick}")
         else:
-            await ctx.send('❌ Failed to update nickname')
+            await ctx.send("❌ Failed to update nickname")
 
     @app_commands.command(name="onboard", description="Complete your onboarding")
-    @app_commands.describe(
-        firstname="Your first name",
-        lastname="Your last name"
-    )
+    @app_commands.describe(firstname="Your first name", lastname="Your last name")
     async def slash_onboard(
-        self,
-        interaction: discord.Interaction,
-        firstname: str,
-        lastname: str
+        self, interaction: discord.Interaction, firstname: str, lastname: str
     ):
         """Slash command for onboarding"""
         # Check if already onboarded
@@ -177,22 +165,20 @@ class OnboardingCog(commands.Cog):
             db_member = session.exec(
                 select(Member).where(
                     Member.user_id == interaction.user.id,
-                    Member.guild_id == interaction.guild.id
+                    Member.guild_id == interaction.guild.id,
                 )
             ).first()
 
             if db_member and db_member.onboarding_status > 0:
                 await interaction.response.send_message(
                     "You have already completed onboarding! To change your name, use /setnick",
-                    ephemeral=True
+                    ephemeral=True,
                 )
                 return
 
         # Update nickname
         success = await self.update_member_nickname(
-            interaction.user,
-            firstname,
-            lastname
+            interaction.user, firstname, lastname
         )
 
         if success:
@@ -200,12 +186,12 @@ class OnboardingCog(commands.Cog):
             await self.complete_onboarding(interaction.user)
             await interaction.response.send_message(
                 f"✅ Welcome {firstname} {lastname}! Your onboarding is complete.",
-                ephemeral=True
+                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "❌ There was an error completing your onboarding. Please try again or contact an admin.",
-                ephemeral=True
+                ephemeral=True,
             )
 
 

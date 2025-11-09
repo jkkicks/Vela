@@ -1,4 +1,5 @@
 """Database configuration with SQLite/PostgreSQL support"""
+
 import os
 from sqlmodel import create_engine, SQLModel, Session as SQLModelSession
 from sqlalchemy.orm import sessionmaker
@@ -8,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Default data directory - always ./data unless overridden
-data_dir = os.getenv('DATA_DIR', './data')
+data_dir = os.getenv("DATA_DIR", "./data")
 os.makedirs(data_dir, exist_ok=True)
 
 # Build default SQLite database path
@@ -25,7 +26,7 @@ if "sqlite" in DATABASE_URL:
     engine = create_engine(
         DATABASE_URL,
         echo=True if os.getenv("DEBUG") else False,
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
     )
 else:
     # PostgreSQL configuration
@@ -33,11 +34,13 @@ else:
         DATABASE_URL,
         echo=True if os.getenv("DEBUG") else False,
         pool_size=5,
-        pool_pre_ping=True
+        pool_pre_ping=True,
     )
 
 # Create session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=SQLModelSession)
+SessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=SQLModelSession
+)
 
 
 def create_db_and_tables():

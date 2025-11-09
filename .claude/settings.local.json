@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m black:*)",
+      "Bash(python -m ruff:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

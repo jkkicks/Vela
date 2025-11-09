@@ -1,4 +1,5 @@
 """Pydantic schemas for API responses"""
+
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -6,6 +7,7 @@ from datetime import datetime
 
 class MemberResponse(BaseModel):
     """Member response schema"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -25,6 +27,7 @@ class MemberResponse(BaseModel):
 
 class GuildResponse(BaseModel):
     """Guild response schema"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -37,6 +40,7 @@ class GuildResponse(BaseModel):
 
 class ConfigResponse(BaseModel):
     """Config response schema"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -49,6 +53,7 @@ class ConfigResponse(BaseModel):
 
 class StatsResponse(BaseModel):
     """Statistics response schema"""
+
     total_guilds: int
     total_members: int
     onboarded_members: int
@@ -57,6 +62,7 @@ class StatsResponse(BaseModel):
 
 class AuditLogResponse(BaseModel):
     """Audit log response schema"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int

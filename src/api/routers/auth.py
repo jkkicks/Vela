@@ -1,4 +1,5 @@
 """Authentication router with Discord OAuth"""
+
 from fastapi import APIRouter, Request, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -10,7 +11,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import secrets
 import logging
-import os
 
 from src.shared.database import get_session
 from src.shared.models import AdminUser
@@ -54,7 +54,7 @@ async def get_current_user(request: Request):
     try:
         payload = decode_jwt_token(token)
         return payload
-    except:
+    except Exception:
         raise HTTPException(401, "Invalid authentication")
 
 
@@ -63,17 +63,15 @@ async def login_page(request: Request):
     """Display login page"""
     # Check if Discord OAuth is configured
     if not settings.discord_client_id or not settings.discord_client_secret:
-        return templates.TemplateResponse("pages/login.html", {
-            "request": request,
-            "title": "Login",
-            "oauth_configured": False
-        })
+        return templates.TemplateResponse(
+            "pages/login.html",
+            {"request": request, "title": "Login", "oauth_configured": False},
+        )
 
-    return templates.TemplateResponse("pages/login.html", {
-        "request": request,
-        "title": "Login",
-        "oauth_configured": True
-    })
+    return templates.TemplateResponse(
+        "pages/login.html",
+        {"request": request, "title": "Login", "oauth_configured": True},
+    )
 
 
 @router.get("/discord")
@@ -98,7 +96,7 @@ async def discord_login():
         "redirect_uri": settings.discord_redirect_uri,
         "response_type": "code",
         "scope": "identify guilds",
-        "state": state
+        "state": state,
     }
 
     discord_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
@@ -107,10 +105,7 @@ async def discord_login():
 
 @router.get("/callback")
 async def discord_callback(
-    code: str,
-    state: str,
-    response: Response,
-    session: Session = Depends(get_session)
+    code: str, state: str, response: Response, session: Session = Depends(get_session)
 ):
     """Handle Discord OAuth callback for both regular login and setup"""
     # Check if this is a setup flow (state starts with "setup:")
@@ -120,6 +115,7 @@ async def discord_callback(
     if is_setup_flow:
         # Import setup tokens
         from src.api.routers.setup import setup_csrf_tokens, setup_oauth_sessions
+
         if state not in setup_csrf_tokens:
             raise HTTPException(400, "Invalid state token")
         del setup_csrf_tokens[state]
@@ -140,11 +136,9 @@ async def discord_callback(
                 "client_secret": settings.discord_client_secret,
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": settings.discord_redirect_uri
+                "redirect_uri": settings.discord_redirect_uri,
             },
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
         if token_response.status_code != 200:
@@ -156,7 +150,7 @@ async def discord_callback(
         # Get user info
         user_response = await client.get(
             "https://discord.com/api/users/@me",
-            headers={"Authorization": f"Bearer {tokens['access_token']}"}
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
         )
 
         if user_response.status_code != 200:
@@ -172,17 +166,17 @@ async def discord_callback(
 
             session_id = secrets.token_urlsafe(32)
             setup_oauth_sessions[session_id] = {
-                "discord_id": discord_user['id'],
-                "username": discord_user['username'],
-                "avatar": discord_user.get('avatar'),
-                "created_at": datetime.utcnow()
+                "discord_id": discord_user["id"],
+                "username": discord_user["username"],
+                "avatar": discord_user.get("avatar"),
+                "created_at": datetime.utcnow(),
             }
 
             # Clean old sessions (older than 1 hour)
             cutoff = datetime.utcnow() - timedelta(hours=1)
             sessions_copy = setup_oauth_sessions.copy()
             for sess_id, sess_data in sessions_copy.items():
-                if sess_data.get('created_at', datetime.min) < cutoff:
+                if sess_data.get("created_at", datetime.min) < cutoff:
                     del setup_oauth_sessions[sess_id]
 
             # Set setup session cookie and redirect back to setup page
@@ -193,7 +187,7 @@ async def discord_callback(
                 httponly=True,
                 secure=False,  # Set to True in production with HTTPS
                 samesite="lax",
-                max_age=3600  # 1 hour
+                max_age=3600,  # 1 hour
             )
 
             logger.info(f"User {discord_user['username']} authenticated for setup")
@@ -202,12 +196,14 @@ async def discord_callback(
         # Regular login flow
         # Check if user is admin in database
         admin = session.exec(
-            select(AdminUser).where(AdminUser.discord_id == int(discord_user['id']))
+            select(AdminUser).where(AdminUser.discord_id == int(discord_user["id"]))
         ).first()
 
         if not admin:
             # Not an admin, deny access
-            logger.warning(f"Non-admin user attempted login: {discord_user['username']}")
+            logger.warning(
+                f"Non-admin user attempted login: {discord_user['username']}"
+            )
             raise HTTPException(403, "You are not authorized to access this panel")
 
         # Update last login
@@ -215,13 +211,15 @@ async def discord_callback(
         session.commit()
 
         # Create JWT token
-        jwt_token = create_jwt_token({
-            "discord_id": discord_user['id'],
-            "username": discord_user['username'],
-            "avatar": discord_user.get('avatar'),
-            "guild_id": admin.guild_id,
-            "is_super_admin": admin.is_super_admin
-        })
+        jwt_token = create_jwt_token(
+            {
+                "discord_id": discord_user["id"],
+                "username": discord_user["username"],
+                "avatar": discord_user.get("avatar"),
+                "guild_id": admin.guild_id,
+                "is_super_admin": admin.is_super_admin,
+            }
+        )
 
         # Set cookie and redirect to dashboard
         redirect = RedirectResponse(url="/dashboard", status_code=302)
@@ -231,7 +229,7 @@ async def discord_callback(
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite="lax",
-            max_age=86400  # 24 hours
+            max_age=86400,  # 24 hours
         )
 
         logger.info(f"User {discord_user['username']} logged in successfully")
@@ -247,6 +245,6 @@ async def logout(response: Response):
 
 
 @router.get("/me")
-async def get_me(current_user = Depends(get_current_user)):
+async def get_me(current_user=Depends(get_current_user)):
     """Get current user info"""
     return current_user
