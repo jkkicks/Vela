@@ -33,13 +33,13 @@ build/
 *.sqlite
 *.sqlite3
 member_data.db
-sparkbot.db
+vela.db
 /data/
 
 # Logs
 *.log
 discord.log
-SparkBot.log
+Vela.log
 /logs/
 
 # Planning (private)

@@ -1,1 +1,1 @@
-"""Discord Bot module for SparkBot"""
+"""Discord Bot module for Vela"""

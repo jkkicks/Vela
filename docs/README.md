@@ -1,6 +1,6 @@
-# SparkBot Documentation
+# Vela Documentation
 
-Welcome to the SparkBot documentation! This guide will help you get started with installation, configuration, and development.
+Welcome to the Vela documentation! This guide will help you get started with installation, configuration, and development.
 
 ## 📚 Documentation Structure
 
@@ -13,7 +13,7 @@ Welcome to the SparkBot documentation! This guide will help you get started with
 - [Development Setup](development/setup.md) - Setting up your development environment
 - [Virtual Environments](development/virtual-environments.md) - Python virtual environment guide
 - [Project Structure](development/project-structure.md) - Understanding the codebase
-- [Contributing](../CONTRIBUTING.md) - How to contribute to SparkBot
+- [Contributing](../CONTRIBUTING.md) - How to contribute to Vela
 
 ### Deployment
 - [Docker Deployment](deployment/docker.md) - Deploy with Docker and docker-compose
@@ -35,13 +35,13 @@ Welcome to the SparkBot documentation! This guide will help you get started with
 
 - **Main README**: [Back to main README](../README.md)
 - **API Documentation**: http://localhost:8000/docs (when running)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/jkkicks/SparkBot/issues)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/jkkicks/Vela/issues)
 - **Discord Support**: [Join our Discord](https://discord.gg/your-invite-link)
 
 ## 📖 Documentation Versions
 
-This documentation is for SparkBot v2.0. For older versions:
-- [v1.0 Documentation](https://github.com/jkkicks/SparkBot/tree/v1.0/docs) (if applicable)
+This documentation is for Vela v2.0. For older versions:
+- [v1.0 Documentation](https://github.com/jkkicks/Vela/tree/v1.0/docs) (if applicable)
 
 ## 🤝 Contributing to Documentation
 

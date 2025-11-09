@@ -20,6 +20,7 @@ class MemberResponse(BaseModel):
     onboarding_status: int
     onboarding_completed_at: Optional[datetime] = None
     last_change_datetime: Optional[datetime] = None
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class GuildResponse(BaseModel):

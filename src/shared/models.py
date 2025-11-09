@@ -1,4 +1,4 @@
-"""SQLModel database models for SparkBot"""
+"""SQLModel database models for Vela"""
 from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlmodel import Field, SQLModel, JSON, Column, Relationship

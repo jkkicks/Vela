@@ -1,6 +1,6 @@
 # Installation Guide
 
-Comprehensive installation instructions for SparkBot v2.0.
+Comprehensive installation instructions for Vela v2.0.
 
 ## Table of Contents
 - [System Requirements](#system-requirements)
@@ -36,8 +36,8 @@ Comprehensive installation instructions for SparkBot v2.0.
 ### Method 1: Quick Install (Recommended)
 
 ```bash
-git clone https://github.com/jkkicks/SparkBot.git
-cd SparkBot
+git clone https://github.com/jkkicks/Vela.git
+cd Vela
 python start.py  # Handles everything automatically
 ```
 
@@ -45,8 +45,8 @@ python start.py  # Handles everything automatically
 
 #### Step 1: Clone Repository
 ```bash
-git clone https://github.com/jkkicks/SparkBot.git
-cd SparkBot
+git clone https://github.com/jkkicks/Vela.git
+cd Vela
 ```
 
 #### Step 2: Create Virtual Environment
@@ -119,8 +119,8 @@ python -m src.main
 docker-compose up -d
 
 # Or using Docker directly
-docker build -t sparkbot .
-docker run -d -p 8000:8000 --env-file .env sparkbot
+docker build -t vela .
+docker run -d -p 8000:8000 --env-file .env vela
 ```
 
 See [Docker Deployment Guide](../deployment/docker.md) for details.
@@ -133,7 +133,7 @@ See [Docker Deployment Guide](../deployment/docker.md) for details.
 |----------|-------------|----------|---------|
 | BOT_TOKEN | Discord bot token | Yes* | `MTIzNDU2Nzg5...` |
 | ENCRYPTION_KEY | Database encryption key | Yes | Generate with Fernet |
-| DATABASE_URL | Database connection string | No | `sqlite:///./sparkbot.db` |
+| DATABASE_URL | Database connection string | No | `sqlite:///./vela.db` |
 
 *Can be configured via web UI instead
 
@@ -164,7 +164,7 @@ python test_install.py
 
 Expected output:
 ```
-Testing SparkBot installation...
+Testing Vela installation...
 [OK] discord.py imported
 [OK] FastAPI imported
 [OK] SQLModel imported

@@ -4,30 +4,30 @@ services:
   # PostgreSQL Database (optional - comment out if using SQLite)
   postgres:
     image: postgres:15-alpine
-    container_name: sparkbot-db
+    container_name: vela-db
     environment:
-      POSTGRES_DB: sparkbot
-      POSTGRES_USER: sparkbot
+      POSTGRES_DB: vela
+      POSTGRES_USER: vela
       POSTGRES_PASSWORD: changeme
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sparkbot"]
+      test: ["CMD-SHELL", "pg_isready -U vela"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # SparkBot Application
+  # Vela Application
   app:
     build: .
-    container_name: sparkbot-app
+    container_name: vela-app
     env_file:
       - .env
     environment:
       # Override for PostgreSQL (comment out if using SQLite)
-      DATABASE_URL: postgresql://sparkbot:changeme@postgres:5432/sparkbot
+      DATABASE_URL: postgresql://vela:changeme@postgres:5432/vela
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
   # Redis Cache (optional)
   # redis:
   #   image: redis:7-alpine
-  #   container_name: sparkbot-redis
+  #   container_name: vela-redis
   #   ports:
   #     - "6379:6379"
   #   volumes:

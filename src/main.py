@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.bot.main import SparkBot
+from src.bot.main import VelaBot
 from src.api.main import app
 from src.shared.config import settings
 from src.shared.database import init_database, get_session
@@ -32,7 +32,7 @@ logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('sparkbot.log'),
+        logging.FileHandler('vela.log'),
         logging.StreamHandler()
     ]
 )
@@ -51,7 +51,7 @@ async def run_bot():
     global bot_instance
     """Run the Discord bot"""
     try:
-        bot = SparkBot()
+        bot = VelaBot()
         bot_instance = bot  # Make bot accessible to API
 
         # Also attach to the FastAPI app so it's accessible from routers
@@ -128,7 +128,7 @@ async def run_api():
 async def shutdown(tasks, signal_name="SIGINT"):
     """Gracefully shutdown all tasks"""
     logger.info(f"Received {signal_name}, shutting down...")
-    print(f"\n🛑 Shutting down SparkBot...")
+    print(f"\n🛑 Shutting down Vela...")
 
     # Cancel all tasks
     for task in tasks:
@@ -162,7 +162,7 @@ async def main():
     """Run both services concurrently"""
     print("""
     ╔═══════════════════════════════════════╗
-    ║         SparkBot v2.0.0               ║
+    ║           Vela v2.0.0                 ║
     ║  Discord Onboarding Bot with Web UI   ║
     ╚═══════════════════════════════════════╝
     """)

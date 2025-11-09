@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 # Support both SQLite and PostgreSQL via environment variable
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./sparkbot.db"  # Default to SQLite
+    "sqlite:///./vela.db"  # Default to SQLite
 )
 
 # PostgreSQL: postgresql://user:password@host:port/dbname
-# SQLite: sqlite:///./sparkbot.db
+# SQLite: sqlite:///./vela.db
 
 # Configure engine based on database type
 if "sqlite" in DATABASE_URL:

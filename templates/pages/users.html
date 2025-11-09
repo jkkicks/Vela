@@ -82,6 +82,27 @@
         </div>
     </div>
 
+    <!-- User Details Modal -->
+    <div id="userModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">User Details</h3>
+                <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="userModalContent" class="space-y-4">
+                <!-- Content will be loaded here -->
+                <div class="flex justify-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Users Table -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
@@ -121,14 +142,24 @@
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                        {% if user.firstname and user.lastname %}
+                                        {% if user.nickname %}
+                                            {{ user.nickname }}
+                                        {% elif user.firstname and user.lastname %}
                                             {{ user.firstname }} {{ user.lastname }}
+                                        {% elif user.firstname %}
+                                            {{ user.firstname }}
                                         {% else %}
-                                            <span class="text-gray-500 dark:text-gray-400 italic">Not set</span>
+                                            <span class="text-gray-500 dark:text-gray-400 italic">No name set</span>
                                         {% endif %}
                                     </div>
                                     <div class="text-sm text-gray-500 dark:text-gray-400">
-                                        {{ user.email or 'No email' }}
+                                        {% if user.email %}
+                                            {{ user.email }}
+                                        {% elif user.onboarding_status > 0 %}
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Onboarded</span>
+                                        {% else %}
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs">Not onboarded</span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -222,10 +253,138 @@ function filterUsers() {
     });
 }
 
-function viewUser(userId) {
-    // TODO: Implement user details view
-    alert('User details view - Coming soon!\nUser ID: ' + userId);
+async function viewUser(userId) {
+    // Show modal
+    document.getElementById('userModal').classList.remove('hidden');
+
+    try {
+        // Fetch user details
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch user details');
+        }
+
+        const user = await response.json();
+
+        // Build modal content
+        let content = `
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
+                <div class="flex items-center">
+                    <div class="h-16 w-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-semibold">
+                        ${(user.firstname || user.username).charAt(0).toUpperCase()}
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-xl font-semibold text-gray-900 dark:text-white">
+                            ${user.nickname || user.firstname || 'No name set'}
+                        </h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@${user.username}</p>
+                    </div>
+                    <div class="ml-auto">
+                        ${user.onboarding_status > 0
+                            ? '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Onboarded</span>'
+                            : '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>'
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Discord ID</h5>
+                    <p class="text-sm text-gray-900 dark:text-white font-mono">${user.user_id}</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Joined</h5>
+                    <p class="text-sm text-gray-900 dark:text-white">${user.join_datetime ? new Date(user.join_datetime).toLocaleDateString() : 'Unknown'}</p>
+                </div>
+            </div>
+        `;
+
+        // Add all onboarding fields dynamically
+        if (user.extra_data && user.extra_data.onboarding_fields) {
+            const onboardingFields = user.extra_data.onboarding_fields;
+            const fieldsArray = Object.entries(onboardingFields).filter(([key, value]) => value);
+
+            if (fieldsArray.length > 0) {
+                content += '<div class="mt-4"><h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Collected Information</h5><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+                fieldsArray.forEach(([key, value]) => {
+                    // Convert field name to readable label (e.g., first_name -> First Name)
+                    const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    content += `
+                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                            <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">${label}</h5>
+                            <p class="text-sm text-gray-900 dark:text-white">${value}</p>
+                        </div>
+                    `;
+                });
+                content += '</div></div>';
+            }
+        } else {
+            // Fallback to standard fields if extra_data not available (for users onboarded before the update)
+            const standardFields = [];
+            if (user.firstname) standardFields.push({ label: 'First Name', value: user.firstname });
+            if (user.lastname) standardFields.push({ label: 'Last Name', value: user.lastname });
+            if (user.email) standardFields.push({ label: 'Email', value: user.email });
+
+            if (standardFields.length > 0) {
+                content += '<div class="mt-4"><h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Collected Information</h5><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+                standardFields.forEach(field => {
+                    content += `
+                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                            <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">${field.label}</h5>
+                            <p class="text-sm text-gray-900 dark:text-white">${field.value}</p>
+                        </div>
+                    `;
+                });
+                content += '</div></div>';
+            }
+        }
+
+        // Add onboarding completion date if onboarded
+        if (user.onboarding_status > 0 && user.onboarding_completed_at) {
+            content += `
+                <div class="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Onboarding Completed</p>
+                            <p class="text-xs text-blue-700 dark:text-blue-300">${new Date(user.onboarding_completed_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update modal content
+        document.getElementById('userModalContent').innerHTML = content;
+
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('userModalContent').innerHTML = `
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">Failed to load user details</p>
+            </div>
+        `;
+    }
 }
+
+function closeUserModal() {
+    document.getElementById('userModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('userModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeUserModal();
+        }
+    });
+});
 
 function deleteUser(userId, username) {
     if (confirm(`Are you sure you want to remove ${username}?\n\nThis will:\n• Delete all their data from the database\n• Reset their Discord nickname\n• Remove their onboarded role`)) {

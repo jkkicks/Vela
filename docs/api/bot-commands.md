@@ -1,6 +1,6 @@
 # Bot Commands Reference
 
-Complete reference for all SparkBot Discord commands.
+Complete reference for all Vela Discord commands.
 
 ## User Commands
 
@@ -37,7 +37,7 @@ Check bot latency and responsiveness.
 ---
 
 ### `/about`
-Display information about SparkBot.
+Display information about Vela.
 
 **Usage**: `/about`
 

@@ -65,6 +65,95 @@
         </div>
     </div>
 
+    <!-- Field Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Form Fields</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Configure which fields are collected during onboarding (max 5 fields)
+                </p>
+            </div>
+            <button
+                onclick="addField()"
+                class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                id="addFieldBtn"
+            >
+                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Add Field
+            </button>
+        </div>
+
+        <div id="fieldsContainer" class="space-y-3">
+            <!-- Fields will be dynamically added here -->
+        </div>
+
+        <div class="mt-4 flex justify-end">
+            <button
+                onclick="saveFields()"
+                class="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                Save Fields
+            </button>
+        </div>
+    </div>
+
+    <!-- Nickname Template -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nickname Template</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Define how user nicknames should be formatted using field values
+        </p>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Template Pattern (max 32 characters)
+                </label>
+                <input
+                    type="text"
+                    id="nicknameTemplate"
+                    placeholder="e.g., {first_name} @ {business_name}"
+                    maxlength="100"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Use field names in curly braces like <code class="bg-gray-100 dark:bg-gray-900 px-1 rounded">{field_name}</code>
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Available Fields
+                </label>
+                <div id="availableFields" class="flex flex-wrap gap-2">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Preview</h4>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    Example: <span id="nicknamePreview" class="font-mono font-semibold">John @ Acme Corp</span>
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Length: <span id="nicknameLength">17</span> / 32 characters
+                </p>
+            </div>
+
+            <div class="flex justify-end">
+                <button
+                    onclick="saveNicknameTemplate()"
+                    class="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Save Template
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Onboarding Settings -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarding Settings</h2>
@@ -117,7 +206,7 @@
                     <div>
                         <h3 class="text-sm font-medium text-gray-900 dark:text-white">Set Nickname</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Change user's nickname to their provided first and last name
+                            Change user's nickname using the configured template
                         </p>
                     </div>
                     <input
@@ -148,89 +237,10 @@
                     >
                 </label>
             </div>
-
-            <!-- Require Email -->
-            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
-                <label class="flex items-center justify-between cursor-not-allowed">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Require Email</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ask for email address during onboarding (coming soon)
-                        </p>
-                    </div>
-                    <input
-                        type="checkbox"
-                        id="require_email"
-                        disabled
-                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        {% if guild and guild.settings.get('require_email', False) %}checked{% endif %}
-                    >
-                </label>
-            </div>
         </div>
     </div>
 
-    <!-- Collected Information -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Information Collected</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            The following information is collected during onboarding
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">First Name</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Required field</p>
-                </div>
-            </div>
-
-            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Last Name</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Required field</p>
-                </div>
-            </div>
-
-            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Discord User ID</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Automatically collected</p>
-                </div>
-            </div>
-
-            <div class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Join Date</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Automatically collected</p>
-                </div>
-            </div>
-
-            <div class="flex items-start p-3 bg-gray-100 dark:bg-gray-900 rounded-lg opacity-50">
-                <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-500">Email Address</h4>
-                    <p class="text-xs text-gray-400">Coming soon</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Preview Modal Form -->
+    <!-- Preview Onboarding Form -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarding Form Preview</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -241,30 +251,8 @@
         <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 max-w-md mx-auto">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Onboarding</h3>
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        First name
-                    </label>
-                    <input
-                        type="text"
-                        placeholder="John"
-                        disabled
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Last Name
-                    </label>
-                    <input
-                        type="text"
-                        placeholder="Doe"
-                        disabled
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                </div>
+            <div id="formPreview" class="space-y-4">
+                <!-- Will be populated dynamically -->
             </div>
 
             <div class="mt-6 flex justify-end gap-3">
@@ -283,9 +271,9 @@
         <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">How Onboarding Works</h3>
         <div class="text-sm text-blue-700 dark:text-blue-300 space-y-2">
             <p>1. New members click the "Complete Onboarding" button in the welcome message</p>
-            <p>2. A modal form appears asking for their first and last name</p>
+            <p>2. A modal form appears with your configured fields</p>
             <p>3. When submitted, their information is saved to the database</p>
-            <p>4. Their server nickname is updated (if enabled)</p>
+            <p>4. Their server nickname is updated using your template (if enabled)</p>
             <p>5. They receive the configured role (if enabled)</p>
             <p>6. Members who already completed onboarding will see a message saying they're already onboarded</p>
         </div>
@@ -332,7 +320,101 @@
                     Save
                 </button>
                 <button
-                    onclick="closeModal()"
+                    onclick="closeRoleModal()"
+                    class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Field Edit Modal -->
+<div id="fieldModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4" id="fieldModalTitle">Add Field</h3>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Field Name (internal)
+                    </label>
+                    <input
+                        type="text"
+                        id="fieldName"
+                        placeholder="e.g., first_name"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Use lowercase with underscores (e.g., business_name)
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Label (shown to users)
+                    </label>
+                    <input
+                        type="text"
+                        id="fieldLabel"
+                        placeholder="e.g., First Name"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Placeholder
+                    </label>
+                    <input
+                        type="text"
+                        id="fieldPlaceholder"
+                        placeholder="e.g., John"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Max Length
+                    </label>
+                    <input
+                        type="number"
+                        id="fieldMaxLength"
+                        placeholder="100"
+                        min="1"
+                        max="1000"
+                        value="100"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="fieldRequired"
+                            checked
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        >
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Required Field</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button
+                    type="button"
+                    onclick="saveFieldFromModal(); return false;"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Save
+                </button>
+                <button
+                    type="button"
+                    onclick="closeFieldModal(); return false;"
                     class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                     Cancel
@@ -345,11 +427,353 @@
 
 {% block scripts %}
 <script>
+// State management
+let fields = [];
+try {
+    {% if guild and guild.settings and guild.settings.get('onboarding_fields') %}
+    fields = {{ guild.settings.get('onboarding_fields')|tojson|safe }};
+    {% endif %}
+} catch(e) {
+    console.error('Error loading fields:', e);
+    fields = [];
+}
+let editingFieldIndex = -1;
+
+console.log('Initial fields:', fields);
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, loading fields...');
+    loadFields();
+    loadNicknameTemplate();
+});
+
+// Field management
+function loadFields() {
+    const container = document.getElementById('fieldsContainer');
+    container.innerHTML = '';
+
+    if (fields.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No fields configured. Click "Add Field" to get started.</p>';
+        document.getElementById('addFieldBtn').disabled = false;
+        return;
+    }
+
+    fields.forEach((field, index) => {
+        const fieldEl = document.createElement('div');
+        fieldEl.className = 'flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900';
+        fieldEl.innerHTML = `
+            <div class="flex items-center gap-2">
+                <button onclick="moveField(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <button onclick="moveField(${index}, 1)" ${index === fields.length - 1 ? 'disabled' : ''} class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-white">${field.label}</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {${field.name}} ${field.required ? '(Required)' : '(Optional)'} - Max ${field.max_length} chars
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="editField(${index})" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                </button>
+                <button onclick="deleteField(${index})" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(fieldEl);
+    });
+
+    // Update add button state
+    document.getElementById('addFieldBtn').disabled = fields.length >= 5;
+
+    // Update form preview and available fields
+    updateFormPreview();
+    updateAvailableFields();
+}
+
+function addField() {
+    if (fields.length >= 5) {
+        alert('Discord modals support a maximum of 5 fields');
+        return;
+    }
+    editingFieldIndex = -1;
+    document.getElementById('fieldModalTitle').textContent = 'Add Field';
+    document.getElementById('fieldName').value = '';
+    document.getElementById('fieldLabel').value = '';
+    document.getElementById('fieldPlaceholder').value = '';
+    document.getElementById('fieldMaxLength').value = '100';
+    document.getElementById('fieldRequired').checked = true;
+    document.getElementById('fieldModal').classList.remove('hidden');
+}
+
+function editField(index) {
+    editingFieldIndex = index;
+    const field = fields[index];
+    document.getElementById('fieldModalTitle').textContent = 'Edit Field';
+    document.getElementById('fieldName').value = field.name;
+    document.getElementById('fieldLabel').value = field.label;
+    document.getElementById('fieldPlaceholder').value = field.placeholder;
+    document.getElementById('fieldMaxLength').value = field.max_length;
+    document.getElementById('fieldRequired').checked = field.required;
+    document.getElementById('fieldModal').classList.remove('hidden');
+}
+
+function deleteField(index) {
+    if (confirm('Are you sure you want to delete this field?')) {
+        fields.splice(index, 1);
+        loadFields();
+    }
+}
+
+function moveField(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= fields.length) return;
+
+    const temp = fields[index];
+    fields[index] = fields[newIndex];
+    fields[newIndex] = temp;
+    loadFields();
+}
+
+function saveFieldFromModal() {
+    console.log('saveFieldFromModal called');
+
+    const name = document.getElementById('fieldName').value.trim();
+    const label = document.getElementById('fieldLabel').value.trim();
+    const placeholder = document.getElementById('fieldPlaceholder').value.trim();
+    const maxLength = parseInt(document.getElementById('fieldMaxLength').value) || 100;
+    const required = document.getElementById('fieldRequired').checked;
+
+    console.log('Field data:', { name, label, placeholder, maxLength, required });
+
+    if (!name || !label) {
+        alert('Field name and label are required');
+        return;
+    }
+
+    // Validate field name format
+    if (!/^[a-z_][a-z0-9_]*$/.test(name)) {
+        alert('Field name must be lowercase with underscores (e.g., first_name)');
+        return;
+    }
+
+    // Check for duplicate names (excluding current field if editing)
+    const isDuplicate = fields.some((field, index) =>
+        field.name === name && index !== editingFieldIndex
+    );
+    if (isDuplicate) {
+        alert('A field with this name already exists');
+        return;
+    }
+
+    const field = {
+        name,
+        label,
+        placeholder,
+        max_length: maxLength,
+        required
+    };
+
+    console.log('Adding field:', field);
+
+    if (editingFieldIndex >= 0) {
+        fields[editingFieldIndex] = field;
+    } else {
+        fields.push(field);
+    }
+
+    console.log('Fields array:', fields);
+
+    closeFieldModal();
+    loadFields();
+}
+
+function closeFieldModal() {
+    console.log('Closing field modal');
+    const modal = document.getElementById('fieldModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        console.log('Modal closed');
+    } else {
+        console.error('Modal element not found!');
+    }
+}
+
+async function saveFields() {
+    try {
+        const response = await fetch('/api/config/onboarding/fields', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields })
+        });
+
+        if (response.ok) {
+            alert('Fields saved successfully!');
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to save fields'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error saving fields');
+    }
+}
+
+// Nickname template management
+function loadNicknameTemplate() {
+    {% if guild and guild.settings and guild.settings.get('nickname_template') %}
+    const template = {{ guild.settings.get('nickname_template')|tojson|safe }};
+    document.getElementById('nicknameTemplate').value = template;
+    updateNicknamePreview();
+    {% endif %}
+}
+
+function updateAvailableFields() {
+    const container = document.getElementById('availableFields');
+    container.innerHTML = '';
+
+    if (fields.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400">No fields configured yet</p>';
+        return;
+    }
+
+    fields.forEach(field => {
+        const badge = document.createElement('button');
+        badge.className = 'px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded hover:bg-blue-200 dark:hover:bg-blue-800';
+        badge.textContent = `{${field.name}}`;
+        badge.onclick = () => {
+            const input = document.getElementById('nicknameTemplate');
+            input.value += `{${field.name}}`;
+            updateNicknamePreview();
+        };
+        container.appendChild(badge);
+    });
+}
+
+function updateNicknamePreview() {
+    const template = document.getElementById('nicknameTemplate').value;
+
+    // Create example data
+    const exampleData = {};
+    fields.forEach(field => {
+        // Generate example values
+        const examples = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'business_name': 'Acme Corp',
+            'phone_number': '555-1234',
+            'email': 'john@example.com'
+        };
+        exampleData[field.name] = examples[field.name] || 'Example';
+    });
+
+    // Replace placeholders
+    let preview = template;
+    Object.keys(exampleData).forEach(key => {
+        preview = preview.replace(new RegExp(`\\{${key}\\}`, 'g'), exampleData[key]);
+    });
+
+    // Truncate to Discord's 32 char limit
+    const truncated = preview.substring(0, 32);
+
+    document.getElementById('nicknamePreview').textContent = truncated || 'No template set';
+    document.getElementById('nicknameLength').textContent = truncated.length;
+
+    // Warn if too long
+    const lengthEl = document.getElementById('nicknameLength');
+    if (truncated.length > 32) {
+        lengthEl.className = 'text-red-600 dark:text-red-400 font-semibold';
+    } else {
+        lengthEl.className = '';
+    }
+}
+
+// Update preview when template changes
+document.addEventListener('DOMContentLoaded', function() {
+    const templateInput = document.getElementById('nicknameTemplate');
+    if (templateInput) {
+        templateInput.addEventListener('input', updateNicknamePreview);
+    }
+});
+
+async function saveNicknameTemplate() {
+    const template = document.getElementById('nicknameTemplate').value.trim();
+
+    if (!template) {
+        alert('Please enter a nickname template');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/onboarding/nickname-template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ template })
+        });
+
+        if (response.ok) {
+            alert('Nickname template saved successfully!');
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to save template'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error saving template');
+    }
+}
+
+// Form preview
+function updateFormPreview() {
+    const container = document.getElementById('formPreview');
+    container.innerHTML = '';
+
+    if (fields.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center">No fields configured</p>';
+        return;
+    }
+
+    fields.forEach(field => {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.innerHTML = `
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                ${field.label}${field.required ? '' : ' (optional)'}
+            </label>
+            <input
+                type="text"
+                placeholder="${field.placeholder}"
+                disabled
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+        `;
+        container.appendChild(fieldDiv);
+    });
+}
+
+// Role configuration
 function configureRole() {
     document.getElementById('roleModal').classList.remove('hidden');
 }
 
-function closeModal() {
+function closeRoleModal() {
     document.getElementById('roleModal').classList.add('hidden');
 }
 
@@ -403,28 +827,31 @@ async function updateSetting(key, value) {
 
         if (response.ok) {
             console.log(`Setting ${key} updated to ${value}`);
-            // Update status badge if onboarding_enabled changed
             if (key === 'onboarding_enabled') {
                 window.location.reload();
             }
         } else {
             const error = await response.json();
             alert(`Error: ${error.detail || 'Failed to update setting'}`);
-            // Revert checkbox
             document.getElementById(key).checked = !value;
         }
     } catch (error) {
         console.error('Error:', error);
         alert('Error updating setting');
-        // Revert checkbox
         document.getElementById(key).checked = !value;
     }
 }
 
-// Close modal when clicking outside
+// Close modals when clicking outside
 document.getElementById('roleModal').addEventListener('click', function(e) {
     if (e.target === this) {
-        closeModal();
+        closeRoleModal();
+    }
+});
+
+document.getElementById('fieldModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeFieldModal();
     }
 });
 </script>

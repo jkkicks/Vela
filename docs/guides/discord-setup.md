@@ -14,7 +14,7 @@ Complete guide for setting up Discord bot and OAuth application.
 ### Step 1: Access Developer Portal
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
 2. Click "New Application"
-3. Enter a name (e.g., "SparkBot")
+3. Enter a name (e.g., "Vela")
 4. Click "Create"
 
 ### Step 2: Save Application ID
@@ -120,8 +120,8 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=41
 
 Replace `YOUR_CLIENT_ID` with your application ID.
 
-### Method 3: From SparkBot Web Interface
-Once SparkBot is running:
+### Method 3: From Vela Web Interface
+Once Vela is running:
 1. Go to http://localhost:8000/admin/config
 2. Click "Generate Bot Invite Link"
 3. Use the generated link
@@ -158,7 +158,7 @@ To get Discord IDs, enable Developer Mode:
 
 ## First Run Configuration
 
-When you first run SparkBot:
+When you first run Vela:
 
 1. **Via Web Interface** (http://localhost:8000/setup):
    ```

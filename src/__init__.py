@@ -1,1 +1,1 @@
-"""SparkBot - Discord Onboarding Bot with Web Interface"""
+"""Vela - Discord Onboarding Bot with Web Interface"""

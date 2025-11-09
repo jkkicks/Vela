@@ -1,6 +1,6 @@
-# Contributing to SparkBot
+# Contributing to Vela
 
-Thank you for considering contributing to SparkBot! We welcome contributions from everyone. This guide will help you get started.
+Thank you for considering contributing to Vela! We welcome contributions from everyone. This guide will help you get started.
 
 ## Table of Contents
 - [Code of Conduct](#code-of-conduct)
@@ -34,7 +34,7 @@ We are committed to providing a friendly, safe, and welcoming environment for al
 Before creating bug reports, please check existing issues to avoid duplicates.
 
 **To report a bug:**
-1. Go to [GitHub Issues](https://github.com/jkkicks/SparkBot/issues)
+1. Go to [GitHub Issues](https://github.com/jkkicks/Vela/issues)
 2. Click "New Issue"
 3. Choose "Bug Report" template
 4. Include:
@@ -49,7 +49,7 @@ Before creating bug reports, please check existing issues to avoid duplicates.
 We love feature suggestions!
 
 **To suggest a feature:**
-1. Check [existing issues](https://github.com/jkkicks/SparkBot/issues) first
+1. Check [existing issues](https://github.com/jkkicks/Vela/issues) first
 2. Create a new issue with "Feature Request" template
 3. Describe:
    - The problem you're trying to solve
@@ -63,8 +63,8 @@ We love feature suggestions!
 1. Fork the repository
 2. Set up your development environment:
    ```bash
-   git clone https://github.com/your-username/SparkBot.git
-   cd SparkBot
+   git clone https://github.com/your-username/Vela.git
+   cd Vela
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .\.venv\Scripts\activate
    pip install -r requirements.txt
@@ -88,8 +88,8 @@ See [Development Setup Guide](docs/development/setup.md) for detailed instructio
 
 ```bash
 # Quick setup
-git clone https://github.com/jkkicks/SparkBot.git
-cd SparkBot
+git clone https://github.com/jkkicks/Vela.git
+cd Vela
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -303,7 +303,7 @@ Brief description of changes
 ### Resources
 - [Documentation](docs/README.md)
 - [Discord Server](https://discord.gg/your-invite)
-- [GitHub Discussions](https://github.com/jkkicks/SparkBot/discussions)
+- [GitHub Discussions](https://github.com/jkkicks/Vela/discussions)
 
 ### Contact
 - Open an issue for bugs/features
@@ -323,4 +323,4 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ---
 
-Thank you for contributing to SparkBot! Your efforts help make this project better for everyone. 🚀
+Thank you for contributing to Vela! Your efforts help make this project better for everyone. 🚀

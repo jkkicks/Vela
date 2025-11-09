@@ -1,4 +1,4 @@
-name: Build and Deploy SparkBot
+name: Build and Deploy Vela
 
 on:
   push:
@@ -61,7 +61,7 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/sparkbot:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/sparkbot:${{ github.sha }}
-        cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/sparkbot:buildcache
-        cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/sparkbot:buildcache,mode=max
+          ${{ secrets.DOCKERHUB_USERNAME }}/vela:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/vela:${{ github.sha }}
+        cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vela:buildcache
+        cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vela:buildcache,mode=max

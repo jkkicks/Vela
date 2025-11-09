@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick start script for SparkBot"""
+"""Quick start script for Vela"""
 
 import os
 import sys
@@ -61,7 +61,7 @@ def check_static_assets():
 def main():
     print("""
 ╔═══════════════════════════════════════╗
-║         SparkBot v2.0 Startup         ║
+║           Vela v2.0 Startup           ║
 ║  Discord Onboarding Bot with Web UI   ║
 ╚═══════════════════════════════════════╝
     """)
@@ -77,7 +77,7 @@ def main():
     check_static_assets()
 
     print("\n✅ All checks passed!")
-    print("\nStarting SparkBot...")
+    print("\nStarting Vela...")
     print("-" * 40)
 
     # Start the application
@@ -86,12 +86,12 @@ def main():
         result = subprocess.run([sys.executable, "-m", "src.main"])
         sys.exit(result.returncode)
     except KeyboardInterrupt:
-        print("\n\n✅ SparkBot stopped by user")
+        print("\n\n✅ Vela stopped by user")
         sys.exit(0)
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n✅ SparkBot startup cancelled")
+        print("\n\n✅ Vela startup cancelled")
         sys.exit(0)

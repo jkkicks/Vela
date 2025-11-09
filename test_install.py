@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Test script to verify SparkBot installation"""
+"""Test script to verify Vela installation"""
 
 import sys
-print("Testing SparkBot installation...")
+print("Testing Vela installation...")
 
 try:
     # Test core imports

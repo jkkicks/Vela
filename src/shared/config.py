@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Database
-    database_url: str = "sqlite:///./sparkbot.db"
+    database_url: str = "sqlite:///./vela.db"
 
     # Discord OAuth
     discord_client_id: Optional[str] = None

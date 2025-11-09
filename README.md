@@ -1,4 +1,4 @@
-# SparkBot v2.0
+# Vela v2.0
 
 A modern Discord onboarding bot with a web management interface, built with FastAPI, SQLModel, and HTMX.
 
@@ -48,8 +48,8 @@ For detailed documentation, visit the [docs folder](docs/README.md):
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/jkkicks/SparkBot.git
-   cd SparkBot
+   git clone https://github.com/jkkicks/Vela.git
+   cd Vela
    ```
 
 2. **Set up a Python virtual environment**
@@ -130,8 +130,8 @@ Create a `.env` file based on `.env.example`:
 
 ```env
 # Database (SQLite or PostgreSQL)
-DATABASE_URL=sqlite:///./sparkbot.db
-# DATABASE_URL=postgresql://user:password@localhost:5432/sparkbot
+DATABASE_URL=sqlite:///./vela.db
+# DATABASE_URL=postgresql://user:password@localhost:5432/vela
 
 # Discord Bot (optional - can be set via web UI)
 BOT_TOKEN=your_bot_token_here
@@ -170,8 +170,8 @@ API_HOST=0.0.0.0
 
 2. **Using Docker directly**
    ```bash
-   docker build -t sparkbot .
-   docker run -d -p 8000:8000 --env-file .env sparkbot
+   docker build -t vela .
+   docker run -d -p 8000:8000 --env-file .env vela
    ```
 
 ### Manual Deployment
@@ -182,16 +182,16 @@ API_HOST=0.0.0.0
    ```
 
 2. **Set up systemd service** (Linux)
-   Create `/etc/systemd/system/sparkbot.service`:
+   Create `/etc/systemd/system/vela.service`:
    ```ini
    [Unit]
-   Description=SparkBot Discord Bot
+   Description=Vela Discord Bot
    After=network.target
 
    [Service]
    Type=simple
-   User=sparkbot
-   WorkingDirectory=/opt/sparkbot
+   User=vela
+   WorkingDirectory=/opt/vela
    ExecStart=/usr/bin/python3 -m src.main
    Restart=on-failure
 
@@ -201,8 +201,8 @@ API_HOST=0.0.0.0
 
 3. **Start the service**
    ```bash
-   sudo systemctl enable sparkbot
-   sudo systemctl start sparkbot
+   sudo systemctl enable vela
+   sudo systemctl start vela
    ```
 
 ## Usage
@@ -214,7 +214,7 @@ API_HOST=0.0.0.0
 - `/setnick` - Change your nickname
 - `/help` - Display help information
 - `/ping` - Check bot latency
-- `/about` - Information about SparkBot
+- `/about` - Information about Vela
 - `/server_info` - Server statistics
 
 **Admin Commands:**
@@ -291,7 +291,7 @@ Interactive API documentation available at:
 ### Project Structure
 
 ```
-SparkBot/
+Vela/
 ├── src/
 │   ├── bot/               # Discord bot implementation
 │   │   ├── cogs/          # Command groups
@@ -358,7 +358,7 @@ alembic downgrade -1
 
 ## Migration from v1.0
 
-If you're upgrading from the original SparkBot:
+If you're upgrading from the original Vela:
 
 1. **Backup your data**
    ```bash
@@ -372,9 +372,9 @@ If you're upgrading from the original SparkBot:
 
 ## Contributing
 
-Thank you for considering contributing to SparkBot! We welcome contributions from everyone.
+Thank you for considering contributing to Vela! We welcome contributions from everyone.
 
-1. Check [GitHub Issues](https://github.com/jkkicks/SparkBot/issues) for existing discussions
+1. Check [GitHub Issues](https://github.com/jkkicks/Vela/issues) for existing discussions
 2. Fork the repository
 3. Create a feature branch (`git checkout -b feature/amazing-feature`)
 4. Make your changes following our code style
@@ -418,13 +418,13 @@ python3 --version
 python --version  # Windows
 python3 --version # Mac/Linux
 
-# SparkBot requires Python 3.9+
+# Vela requires Python 3.9+
 ```
 
 **Virtual Environment Not Activating:**
 - Look for `(.venv)` at the beginning of your command prompt
 - Windows: Try using Command Prompt instead of PowerShell
-- Make sure you're in the SparkBot directory when activating
+- Make sure you're in the Vela directory when activating
 
 ### Common Installation Issues
 
@@ -453,17 +453,17 @@ python download_assets.py
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/jkkicks/SparkBot/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jkkicks/SparkBot/discussions)
-- **Wiki**: [Documentation Wiki](https://github.com/jkkicks/SparkBot/wiki)
+- **Issues**: [GitHub Issues](https://github.com/jkkicks/Vela/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jkkicks/Vela/discussions)
+- **Wiki**: [Documentation Wiki](https://github.com/jkkicks/Vela/wiki)
 
 ## Acknowledgments
 
 - Discord.py community for the excellent bot framework
 - FastAPI for the modern web framework
 - HTMX for making web development fun again
-- Original SparkBot contributors
+- Original Vela contributors
 
 ---
 
-Made with ❤️ by the SparkBot team
+Made with ❤️ by the Vela team

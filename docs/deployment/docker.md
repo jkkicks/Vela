@@ -1,6 +1,6 @@
 # Docker Deployment Guide
 
-Deploy SparkBot using Docker for consistent, reproducible deployments.
+Deploy Vela using Docker for consistent, reproducible deployments.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ Deploy SparkBot using Docker for consistent, reproducible deployments.
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/jkkicks/SparkBot.git
-   cd SparkBot
+   git clone https://github.com/jkkicks/Vela.git
+   cd Vela
    ```
 
 2. **Configure environment**:
@@ -44,7 +44,7 @@ Deploy SparkBot using Docker for consistent, reproducible deployments.
 
 The default configuration includes:
 - PostgreSQL database
-- SparkBot application
+- Vela application
 - Persistent volumes for data
 
 #### Using SQLite Instead
@@ -57,11 +57,11 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: sparkbot
+    container_name: vela
     env_file:
       - .env
     environment:
-      DATABASE_URL: sqlite:///./data/sparkbot.db
+      DATABASE_URL: sqlite:///./data/vela.db
     ports:
       - "8000:8000"
     volumes:
@@ -74,13 +74,13 @@ services:
 
 ```yaml
 networks:
-  sparkbot-network:
+  vela-network:
     driver: bridge
 
 services:
   app:
     networks:
-      - sparkbot-network
+      - vela-network
 ```
 
 ### Environment Variables
@@ -93,7 +93,7 @@ BOT_TOKEN=your_discord_bot_token
 ENCRYPTION_KEY=your_generated_encryption_key
 
 # Database (for PostgreSQL)
-DATABASE_URL=postgresql://sparkbot:changeme@postgres:5432/sparkbot
+DATABASE_URL=postgresql://vela:changeme@postgres:5432/vela
 
 # Optional
 DISCORD_CLIENT_ID=your_oauth_client_id
@@ -106,7 +106,7 @@ API_SECRET_KEY=generate_a_random_secret
 ### Build Locally
 
 ```bash
-docker build -t sparkbot:custom .
+docker build -t vela:custom .
 ```
 
 ### Build with Arguments
@@ -114,7 +114,7 @@ docker build -t sparkbot:custom .
 ```bash
 docker build \
   --build-arg PYTHON_VERSION=3.11 \
-  -t sparkbot:custom .
+  -t vela:custom .
 ```
 
 ### Multi-stage Build (Production)
@@ -182,17 +182,17 @@ docker-compose exec app bash
 
 #### Backup PostgreSQL
 ```bash
-docker-compose exec postgres pg_dump -U sparkbot sparkbot > backup.sql
+docker-compose exec postgres pg_dump -U vela vela > backup.sql
 ```
 
 #### Restore PostgreSQL
 ```bash
-docker-compose exec -T postgres psql -U sparkbot sparkbot < backup.sql
+docker-compose exec -T postgres psql -U vela vela < backup.sql
 ```
 
 #### Backup SQLite
 ```bash
-docker-compose exec app cp /app/data/sparkbot.db /app/data/sparkbot.db.backup
+docker-compose exec app cp /app/data/vela.db /app/data/vela.db.backup
 ```
 
 ## Production Deployment
@@ -212,7 +212,7 @@ docker-compose exec app cp /app/data/sparkbot.db /app/data/sparkbot.db.backup
 
 3. **Deploy stack**:
    ```bash
-   docker stack deploy -c docker-compose.prod.yml sparkbot
+   docker stack deploy -c docker-compose.prod.yml vela
    ```
 
 ### Using Kubernetes
@@ -252,7 +252,7 @@ services:
 
 2. **Volume backup**:
    ```bash
-   docker run --rm -v sparkbot_data:/data -v $(pwd):/backup alpine tar czf /backup/data-backup.tar.gz /data
+   docker run --rm -v vela_data:/data -v $(pwd):/backup alpine tar czf /backup/data-backup.tar.gz /data
    ```
 
 ## Troubleshooting
@@ -281,7 +281,7 @@ docker-compose exec app chown -R 1000:1000 /app/data
 
 ```bash
 # Inspect network
-docker network inspect sparkbot_default
+docker network inspect vela_default
 
 # Recreate network
 docker-compose down
@@ -341,8 +341,8 @@ services:
 
 1. **Don't use root user**:
    ```dockerfile
-   RUN useradd -m sparkbot
-   USER sparkbot
+   RUN useradd -m vela
+   USER vela
    ```
 
 2. **Use secrets management**:

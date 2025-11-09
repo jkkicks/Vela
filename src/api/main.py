@@ -42,8 +42,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="SparkBot Admin Panel",
-    description="Web interface for managing SparkBot Discord bot",
+    title="Vela Admin Panel",
+    description="Web interface for managing Vela Discord bot",
     version="2.0.0",
     lifespan=lifespan
 )
@@ -82,7 +82,7 @@ async def index(request: Request, session: Session = Depends(get_session)):
     # TODO: Check if user is logged in
     return templates.TemplateResponse("pages/index.html", {
         "request": request,
-        "title": "SparkBot Admin Panel"
+        "title": "Vela Admin Panel"
     })
 
 

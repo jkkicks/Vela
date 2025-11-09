@@ -1,19 +1,19 @@
-"""Helper script to properly stop SparkBot"""
+"""Helper script to properly stop Vela"""
 import psutil
 import os
 import sys
 import time
 
 
-def stop_sparkbot():
-    """Find and stop all SparkBot processes"""
-    print("🔍 Looking for SparkBot processes...")
+def stop_vela():
+    """Find and stop all Vela processes"""
+    print("🔍 Looking for Vela processes...")
 
     current_pid = os.getpid()
     killed_count = 0
-    sparkbot_processes = []
+    vela_processes = []
 
-    # Find all Python processes running SparkBot
+    # Find all Python processes running Vela
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
             # Skip current process
@@ -23,19 +23,19 @@ def stop_sparkbot():
             # Check if it's a Python process
             if proc.info['name'] and 'python' in proc.info['name'].lower():
                 cmdline = proc.info.get('cmdline', [])
-                if cmdline and any('start.py' in arg or 'src.main' in arg or 'SparkBot' in str(arg) for arg in cmdline):
-                    sparkbot_processes.append(proc)
+                if cmdline and any('start.py' in arg or 'src.main' in arg or 'Vela' in str(arg) for arg in cmdline):
+                    vela_processes.append(proc)
 
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
 
-    if not sparkbot_processes:
-        print("✅ No SparkBot processes found running")
+    if not vela_processes:
+        print("✅ No Vela processes found running")
         return
 
-    print(f"\n📋 Found {len(sparkbot_processes)} SparkBot process(es):\n")
+    print(f"\n📋 Found {len(vela_processes)} Vela process(es):\n")
 
-    for proc in sparkbot_processes:
+    for proc in vela_processes:
         try:
             cmdline = ' '.join(proc.cmdline())
             print(f"   PID {proc.pid}: {cmdline[:80]}...")
@@ -45,7 +45,7 @@ def stop_sparkbot():
     print("\n🛑 Stopping processes...\n")
 
     # Try graceful shutdown first
-    for proc in sparkbot_processes:
+    for proc in vela_processes:
         try:
             print(f"   Sending terminate signal to PID {proc.pid}...")
             proc.terminate()
@@ -54,7 +54,7 @@ def stop_sparkbot():
             print(f"   ⚠️  Could not terminate PID {proc.pid}: {e}")
 
     # Wait for graceful shutdown
-    gone, alive = psutil.wait_procs(sparkbot_processes, timeout=3)
+    gone, alive = psutil.wait_procs(vela_processes, timeout=3)
 
     # Force kill if still running
     if alive:
@@ -69,7 +69,7 @@ def stop_sparkbot():
     # Final check
     time.sleep(0.5)
     still_running = []
-    for proc in sparkbot_processes:
+    for proc in vela_processes:
         try:
             if proc.is_running():
                 still_running.append(proc.pid)
@@ -100,12 +100,12 @@ def stop_sparkbot():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("SparkBot Process Manager - STOP")
+    print("Vela Process Manager - STOP")
     print("=" * 60)
     print()
 
     try:
-        stop_sparkbot()
+        stop_vela()
     except Exception as e:
         print(f"\n❌ Error: {e}")
         sys.exit(1)

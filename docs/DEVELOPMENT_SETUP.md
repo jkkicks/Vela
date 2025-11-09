@@ -1,6 +1,6 @@
 # Development Setup Guide
 
-This guide will help you set up SparkBot for development on Windows, macOS, or Linux.
+This guide will help you set up Vela for development on Windows, macOS, or Linux.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This guide will help you set up SparkBot for development on Windows, macOS, or L
 
 ```bash
 git clone <repository-url>
-cd SparkBot
+cd Vela
 ```
 
 ### 2. Create a Virtual Environment
@@ -75,7 +75,7 @@ The `requirements.txt` contains all dependencies needed for development and prod
 If you want to use SQLite for quick local testing:
 1. Update your `.env` file with:
    ```
-   DATABASE_URL=sqlite:///./sparkbot.db
+   DATABASE_URL=sqlite:///./vela.db
    ```
 
 ### For Development (PostgreSQL)
@@ -83,11 +83,11 @@ If you want to use PostgreSQL locally:
 1. Install PostgreSQL for your platform
 2. Create a database:
    ```sql
-   CREATE DATABASE sparkbot;
+   CREATE DATABASE vela;
    ```
 3. Update your `.env` file with:
    ```
-   DATABASE_URL=postgresql://username:password@localhost/sparkbot
+   DATABASE_URL=postgresql://username:password@localhost/vela
    ```
 
 ### Run Migrations

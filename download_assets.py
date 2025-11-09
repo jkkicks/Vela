@@ -33,7 +33,7 @@ for filename, url in assets.items():
 # Create placeholder CSS file
 css_file = static_dir / "custom.css"
 if not css_file.exists():
-    css_file.write_text("""/* Custom styles for SparkBot */
+    css_file.write_text("""/* Custom styles for Vela */
 .htmx-indicator {
     display: none;
 }

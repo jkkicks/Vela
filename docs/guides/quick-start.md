@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get SparkBot running in 5 minutes!
+Get Vela running in 5 minutes!
 
 ## Prerequisites
 
@@ -12,8 +12,8 @@ Get SparkBot running in 5 minutes!
 
 ```bash
 # Clone the repository
-git clone https://github.com/jkkicks/SparkBot.git
-cd SparkBot
+git clone https://github.com/jkkicks/Vela.git
+cd Vela
 
 # Create virtual environment
 python -m venv .venv
@@ -50,7 +50,7 @@ Or use the automatic setup:
 python start.py  # Will create .env and generate encryption key
 ```
 
-## 4. Run SparkBot (1 minute)
+## 4. Run Vela (1 minute)
 
 ```bash
 python -m src.main
@@ -87,5 +87,5 @@ Your bot should now be:
 ## Need Help?
 
 - Check [Troubleshooting Guide](troubleshooting.md)
-- Visit [GitHub Issues](https://github.com/jkkicks/SparkBot/issues)
+- Visit [GitHub Issues](https://github.com/jkkicks/Vela/issues)
 - Read the [FAQ](faq.md)

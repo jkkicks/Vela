@@ -1,11 +1,11 @@
 # Project Structure
 
-Understanding the SparkBot codebase organization.
+Understanding the Vela codebase organization.
 
 ## Directory Overview
 
 ```
-SparkBot/
+Vela/
 ├── src/                        # Source code
 │   ├── bot/                   # Discord bot implementation
 │   │   ├── main.py           # Bot entry point and core logic
@@ -93,7 +93,7 @@ SparkBot/
 ### src/bot/
 The Discord bot implementation using discord.py.
 
-**main.py**: Core bot class (`SparkBot`) that:
+**main.py**: Core bot class (`Vela`) that:
 - Initializes the bot with intents
 - Loads cogs (command modules)
 - Handles events (on_ready, on_member_join, etc.)

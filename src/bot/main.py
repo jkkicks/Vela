@@ -12,14 +12,14 @@ from sqlmodel import select
 
 # Setup logging
 logging.basicConfig(
-    filename='sparkbot.log',
+    filename='vela.log',
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 
-class SparkBot(commands.Bot):
+class VelaBot(commands.Bot):
     """Custom bot class with persistent views and database integration"""
 
     def __init__(self):
@@ -195,7 +195,7 @@ class SparkBot(commands.Bot):
 
 async def run_bot():
     """Run the Discord bot"""
-    bot = SparkBot()
+    bot = VelaBot()
 
     # Get bot token from database or environment
     token = None

@@ -60,12 +60,12 @@ When activated, you'll see `(.venv)` at the beginning of your command prompt:
 
 **Before activation:**
 ```
-PS C:\Users\jkkic\PycharmProjects\SparkBot>
+PS C:\Users\jkkic\PycharmProjects\Vela>
 ```
 
 **After activation:**
 ```
-(.venv) PS C:\Users\jkkic\PycharmProjects\SparkBot>
+(.venv) PS C:\Users\jkkic\PycharmProjects\Vela>
 ```
 
 ## Common Commands After Activation
@@ -137,7 +137,7 @@ where pip        # Windows
 pip install ipykernel
 
 # Add virtual environment to Jupyter
-python -m ipykernel install --user --name=sparkbot --display-name="SparkBot (.venv)"
+python -m ipykernel install --user --name=vela --display-name="Vela (.venv)"
 ```
 
 ## Best Practices

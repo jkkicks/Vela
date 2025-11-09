@@ -1,1 +1,1 @@
-"""FastAPI web application for SparkBot management"""
+"""FastAPI web application for Vela management"""

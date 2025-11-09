@@ -574,3 +574,102 @@ async def toggle_app(
     logger.info(f"App {app_name} {'enabled' if enabled else 'disabled'} by {current_user['username']}")
 
     return {"message": f"App {app_name} {'enabled' if enabled else 'disabled'} successfully"}
+
+
+@router.post("/config/onboarding/fields")
+async def save_onboarding_fields(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Save onboarding form fields configuration"""
+    data = await request.json()
+    fields = data.get('fields', [])
+
+    # Validate fields
+    if len(fields) > 5:
+        raise HTTPException(400, "Maximum 5 fields allowed")
+
+    for field in fields:
+        if not field.get('name') or not field.get('label'):
+            raise HTTPException(400, "Each field must have a name and label")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    guild.settings['onboarding_fields'] = fields
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user['guild_id'],
+        user_id=current_user['discord_id'],
+        discord_username=current_user['username'],
+        action="onboarding_fields_updated",
+        details={"field_count": len(fields)}
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"Onboarding fields updated by {current_user['username']}: {len(fields)} fields")
+
+    return {"message": "Fields saved successfully"}
+
+
+@router.post("/config/onboarding/nickname-template")
+async def save_nickname_template(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
+):
+    """Save nickname template configuration"""
+    data = await request.json()
+    template = data.get('template', '')
+
+    if not template:
+        raise HTTPException(400, "Template is required")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user['guild_id'])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    guild.settings['nickname_template'] = template
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user['guild_id'],
+        user_id=current_user['discord_id'],
+        discord_username=current_user['username'],
+        action="nickname_template_updated",
+        details={"template": template}
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"Nickname template updated by {current_user['username']}: {template}")
+
+    return {"message": "Template saved successfully"}

@@ -26,7 +26,7 @@ VOLUME ["/app/data"]
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV DATABASE_URL=sqlite:///./data/sparkbot.db
+ENV DATABASE_URL=sqlite:///./data/vela.db
 
 # Expose port
 EXPOSE 8000

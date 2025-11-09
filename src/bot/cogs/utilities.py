@@ -45,7 +45,7 @@ class UtilityCog(commands.Cog):
     async def slash_help(self, interaction: discord.Interaction):
         """Display help information"""
         embed = discord.Embed(
-            title="SparkBot Help",
+            title="Vela Help",
             description="Here are the available commands:",
             color=discord.Color.blue()
         )
@@ -88,13 +88,13 @@ class UtilityCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="about", description="About SparkBot")
+    @app_commands.command(name="about", description="About Vela")
     async def slash_about(self, interaction: discord.Interaction):
         """Display information about the bot"""
         embed = discord.Embed(
-            title="About SparkBot",
+            title="About Vela",
             description=(
-                "SparkBot is a modern Discord onboarding bot with a web management interface.\n\n"
+                "Vela is a modern Discord onboarding bot with a web management interface.\n\n"
                 "**Features:**\n"
                 "• Automated member onboarding\n"
                 "• Web-based configuration panel\n"
