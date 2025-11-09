@@ -1,4 +1,5 @@
 """Utility commands cog"""
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -14,20 +15,20 @@ class UtilityCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name='99')
+    @commands.command(name="99")
     async def cmd_nine_nine(self, ctx: commands.Context):
         """Brooklyn Nine-Nine quotes"""
         brooklyn_99_quotes = [
-            'I\'m the human form of the 💯 emoji.',
-            'Bingpot!',
-            'Cool. Cool cool cool cool cool cool cool, no doubt no doubt no doubt no doubt.',
-            'Title of your sex tape.',
-            'Noice!',
-            'Toit!',
-            'Nine-Nine!',
-            'Terry loves yogurt.',
-            'Bone?!',
-            'I\'ve only had Arlo for a day and a half, but if anything happened to him, I would kill everyone in this room and then myself.'
+            "I'm the human form of the 💯 emoji.",
+            "Bingpot!",
+            "Cool. Cool cool cool cool cool cool cool, no doubt no doubt no doubt no doubt.",
+            "Title of your sex tape.",
+            "Noice!",
+            "Toit!",
+            "Nine-Nine!",
+            "Terry loves yogurt.",
+            "Bone?!",
+            "I've only had Arlo for a day and a half, but if anything happened to him, I would kill everyone in this room and then myself.",
         ]
         response = random.choice(brooklyn_99_quotes)
         await ctx.send(response)
@@ -37,8 +38,7 @@ class UtilityCog(commands.Cog):
         """Check bot latency"""
         latency = round(self.bot.latency * 1000)
         await interaction.response.send_message(
-            f"🏓 Pong! Latency: {latency}ms",
-            ephemeral=True
+            f"🏓 Pong! Latency: {latency}ms", ephemeral=True
         )
 
     @app_commands.command(name="help", description="Get help with bot commands")
@@ -47,7 +47,7 @@ class UtilityCog(commands.Cog):
         embed = discord.Embed(
             title="Vela Help",
             description="Here are the available commands:",
-            color=discord.Color.blue()
+            color=discord.Color.blue(),
         )
 
         # User commands
@@ -60,7 +60,7 @@ class UtilityCog(commands.Cog):
                 "**/help** - Show this help message\n"
                 "**/ping** - Check bot latency"
             ),
-            inline=False
+            inline=False,
         )
 
         # Admin commands
@@ -72,16 +72,14 @@ class UtilityCog(commands.Cog):
                 "**/list_members** - List all members in database\n"
                 "**/sync** - Sync slash commands"
             ),
-            inline=False
+            inline=False,
         )
 
         # Fun commands
         embed.add_field(
             name="🎮 Fun Commands",
-            value=(
-                "**!99** - Get a Brooklyn Nine-Nine quote"
-            ),
-            inline=False
+            value=("**!99** - Get a Brooklyn Nine-Nine quote"),
+            inline=False,
         )
 
         embed.set_footer(text="For more help, contact an administrator")
@@ -102,37 +100,28 @@ class UtilityCog(commands.Cog):
                 "• Multi-guild support\n"
                 "• Comprehensive audit logging"
             ),
-            color=discord.Color.green()
+            color=discord.Color.green(),
         )
 
+        embed.add_field(name="Version", value="2.0.0", inline=True)
+        embed.add_field(name="Framework", value="discord.py 2.3.2", inline=True)
         embed.add_field(
-            name="Version",
-            value="2.0.0",
-            inline=True
-        )
-        embed.add_field(
-            name="Framework",
-            value="discord.py 2.3.2",
-            inline=True
-        )
-        embed.add_field(
-            name="Database",
-            value="SQLModel + SQLite/PostgreSQL",
-            inline=True
+            name="Database", value="SQLModel + SQLite/PostgreSQL", inline=True
         )
 
         embed.set_footer(text="Built with ❤️ using Python")
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="server_info", description="Get information about this server")
+    @app_commands.command(
+        name="server_info", description="Get information about this server"
+    )
     async def slash_server_info(self, interaction: discord.Interaction):
         """Display server information"""
         guild = interaction.guild
 
         embed = discord.Embed(
-            title=f"📊 {guild.name} Server Info",
-            color=discord.Color.blue()
+            title=f"📊 {guild.name} Server Info", color=discord.Color.blue()
         )
 
         embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
@@ -148,7 +137,7 @@ class UtilityCog(commands.Cog):
         embed.add_field(
             name="Created On",
             value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
-            inline=False
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)

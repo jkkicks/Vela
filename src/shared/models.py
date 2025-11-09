@@ -1,4 +1,5 @@
 """SQLModel database models for Vela"""
+
 from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlmodel import Field, SQLModel, JSON, Column, Relationship
@@ -8,6 +9,7 @@ import sqlalchemy as sa
 
 class Guild(SQLModel, table=True):
     """Support for multi-guild architecture from the start"""
+
     __tablename__ = "guilds"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -28,6 +30,7 @@ class Guild(SQLModel, table=True):
 
 class Config(SQLModel, table=True):
     """Per-guild configuration"""
+
     __tablename__ = "configs"
     __table_args__ = (UniqueConstraint("key", "guild_id"),)
 
@@ -38,7 +41,7 @@ class Config(SQLModel, table=True):
     description: Optional[str] = None
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(sa.DateTime, onupdate=datetime.utcnow)
+        sa_column=Column(sa.DateTime, onupdate=datetime.utcnow),
     )
 
     # Relationships
@@ -47,6 +50,7 @@ class Config(SQLModel, table=True):
 
 class AdminUser(SQLModel, table=True):
     """Web UI administrators - Discord users with admin access"""
+
     __tablename__ = "admin_users"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -63,6 +67,7 @@ class AdminUser(SQLModel, table=True):
 
 class Channel(SQLModel, table=True):
     """Discord channels configuration"""
+
     __tablename__ = "channels"
     __table_args__ = (UniqueConstraint("channel_id", "guild_id"),)
 
@@ -79,6 +84,7 @@ class Channel(SQLModel, table=True):
 
 class Role(SQLModel, table=True):
     """Discord roles configuration"""
+
     __tablename__ = "roles"
     __table_args__ = (UniqueConstraint("role_id", "guild_id"),)
 
@@ -95,6 +101,7 @@ class Role(SQLModel, table=True):
 
 class Member(SQLModel, table=True):
     """Per-guild member data"""
+
     __tablename__ = "members"
     __table_args__ = (UniqueConstraint("user_id", "guild_id"),)
 
@@ -110,7 +117,9 @@ class Member(SQLModel, table=True):
     onboarding_status: int = 0
     onboarding_completed_at: Optional[datetime] = None
     last_change_datetime: Optional[datetime] = None
-    extra_data: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))  # Renamed from 'metadata' to avoid SQLAlchemy conflict
+    extra_data: Dict[str, Any] = Field(
+        default={}, sa_column=Column(JSON)
+    )  # Renamed from 'metadata' to avoid SQLAlchemy conflict
 
     # Relationships
     guild: Optional[Guild] = Relationship(back_populates="members")
@@ -118,6 +127,7 @@ class Member(SQLModel, table=True):
 
 class AuditLog(SQLModel, table=True):
     """Audit log for tracking all actions"""
+
     __tablename__ = "audit_logs"
 
     id: Optional[int] = Field(default=None, primary_key=True)

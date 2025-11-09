@@ -1,10 +1,10 @@
 """Setup router for first-run configuration"""
-from fastapi import APIRouter, Request, Depends, HTTPException, Form, Response
+
+from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from pathlib import Path
-from httpx import AsyncClient
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 import logging
@@ -36,10 +36,7 @@ def check_setup_allowed(session: Session):
 
 
 @router.get("/", response_class=HTMLResponse)
-async def setup_page(
-    request: Request,
-    session: Session = Depends(get_session)
-):
+async def setup_page(request: Request, session: Session = Depends(get_session)):
     """Display setup page if no admins exist"""
     check_setup_allowed(session)
 
@@ -51,7 +48,9 @@ async def setup_page(
         discord_user = setup_oauth_sessions[setup_session_id]
 
     # Check if Discord OAuth is configured
-    oauth_configured = bool(settings.discord_client_id and settings.discord_client_secret)
+    oauth_configured = bool(
+        settings.discord_client_id and settings.discord_client_secret
+    )
 
     # Pre-populate form fields from environment variables if available
     env_defaults = {
@@ -59,13 +58,16 @@ async def setup_page(
         "bot_token": settings.bot_token or "",
     }
 
-    return templates.TemplateResponse("pages/setup.html", {
-        "request": request,
-        "title": "Initial Setup",
-        "discord_user": discord_user,
-        "oauth_configured": oauth_configured,
-        "env_defaults": env_defaults
-    })
+    return templates.TemplateResponse(
+        "pages/setup.html",
+        {
+            "request": request,
+            "title": "Initial Setup",
+            "discord_user": discord_user,
+            "oauth_configured": oauth_configured,
+            "env_defaults": env_defaults,
+        },
+    )
 
 
 @router.get("/auth/discord")
@@ -92,7 +94,7 @@ async def setup_discord_login(session: Session = Depends(get_session)):
         "redirect_uri": settings.discord_redirect_uri,  # Use the same redirect URI as regular auth
         "response_type": "code",
         "scope": "identify",
-        "state": state
+        "state": state,
     }
 
     discord_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
@@ -108,7 +110,7 @@ async def initialize_setup(
     welcome_channel_id: int = Form(None),
     onboarded_role_id: int = Form(None),
     onboarded_role_name: str = Form(None),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     """Initialize the bot with first guild and admin"""
     # Double check no admins exist
@@ -117,7 +119,9 @@ async def initialize_setup(
     # Verify user has authenticated via Discord OAuth
     setup_session_id = request.cookies.get("setup_session")
     if not setup_session_id or setup_session_id not in setup_oauth_sessions:
-        raise HTTPException(403, "You must authenticate with Discord before completing setup")
+        raise HTTPException(
+            403, "You must authenticate with Discord before completing setup"
+        )
 
     discord_user = setup_oauth_sessions[setup_session_id]
 
@@ -128,17 +132,17 @@ async def initialize_setup(
             guild_id=guild_id,
             guild_name=guild_name,
             bot_token=encrypted_token,
-            is_active=True
+            is_active=True,
         )
         session.add(guild)
         session.flush()  # Get the guild ID
 
         # Create super admin using OAuth data
         admin = AdminUser(
-            discord_id=int(discord_user['discord_id']),
-            discord_username=discord_user['username'],
+            discord_id=int(discord_user["discord_id"]),
+            discord_username=discord_user["username"],
             guild_id=guild_id,
-            is_super_admin=True
+            is_super_admin=True,
         )
         session.add(admin)
 
@@ -149,7 +153,7 @@ async def initialize_setup(
                 channel_type="welcome",
                 guild_id=guild_id,
                 name="welcome",
-                enabled=True
+                enabled=True,
             )
             session.add(channel)
 
@@ -159,7 +163,7 @@ async def initialize_setup(
                 role_id=onboarded_role_id,
                 role_name=onboarded_role_name,
                 role_type="onboarded",
-                guild_id=guild_id
+                guild_id=guild_id,
             )
             session.add(role)
 
@@ -169,7 +173,9 @@ async def initialize_setup(
         if setup_session_id in setup_oauth_sessions:
             del setup_oauth_sessions[setup_session_id]
 
-        logger.info(f"Setup completed. Guild: {guild_name}, Admin: {discord_user['username']}")
+        logger.info(
+            f"Setup completed. Guild: {guild_name}, Admin: {discord_user['username']}"
+        )
 
         # Redirect to login
         redirect = RedirectResponse(url="/auth/login", status_code=302)

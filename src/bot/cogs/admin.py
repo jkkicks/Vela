@@ -1,10 +1,10 @@
 """Admin commands cog"""
+
 import discord
 from discord.ext import commands
 from discord import app_commands
 import logging
 import sys
-from typing import Optional
 from src.shared.database import get_session
 from src.shared.models import Member, AdminUser, AuditLog
 from sqlmodel import select
@@ -23,8 +23,7 @@ class AdminCog(commands.Cog):
         with next(get_session()) as session:
             admin = session.exec(
                 select(AdminUser).where(
-                    AdminUser.discord_id == user_id,
-                    AdminUser.guild_id == guild_id
+                    AdminUser.discord_id == user_id, AdminUser.guild_id == guild_id
                 )
             ).first()
             return admin is not None
@@ -36,8 +35,7 @@ class AdminCog(commands.Cog):
                 # Remove from database
                 db_member = session.exec(
                     select(Member).where(
-                        Member.user_id == member.id,
-                        Member.guild_id == member.guild.id
+                        Member.user_id == member.id, Member.guild_id == member.guild.id
                     )
                 ).first()
 
@@ -50,7 +48,7 @@ class AdminCog(commands.Cog):
                         user_id=member.id,
                         discord_username=member.name,
                         action="member_removed",
-                        details={"removed_by": "admin_command"}
+                        details={"removed_by": "admin_command"},
                     )
                     session.add(audit_log)
                     session.commit()
@@ -69,28 +67,29 @@ class AdminCog(commands.Cog):
             logger.error(f"Error removing member: {e}")
             return False
 
-    @app_commands.command(name="remove", description="Remove user from database and reset nickname")
+    @app_commands.command(
+        name="remove", description="Remove user from database and reset nickname"
+    )
     @app_commands.describe(member="The member you want to remove")
-    async def slash_remove(self, interaction: discord.Interaction, member: discord.Member):
+    async def slash_remove(
+        self, interaction: discord.Interaction, member: discord.Member
+    ):
         """Remove a member's data (admin only)"""
         # Check admin permission
         if not self.is_admin(interaction.user.id, interaction.guild.id):
             await interaction.response.send_message(
-                "❌ You don't have permission to use this command",
-                ephemeral=True
+                "❌ You don't have permission to use this command", ephemeral=True
             )
             return
 
         success = await self.remove_member(member)
         if success:
             await interaction.response.send_message(
-                f"✅ User {member.display_name} removed",
-                ephemeral=True
+                f"✅ User {member.display_name} removed", ephemeral=True
             )
         else:
             await interaction.response.send_message(
-                f"❌ Failed to remove user {member.display_name}",
-                ephemeral=True
+                f"❌ Failed to remove user {member.display_name}", ephemeral=True
             )
 
     @app_commands.command(name="stats", description="View server statistics")
@@ -99,8 +98,7 @@ class AdminCog(commands.Cog):
         # Check admin permission
         if not self.is_admin(interaction.user.id, interaction.guild.id):
             await interaction.response.send_message(
-                "❌ You don't have permission to use this command",
-                ephemeral=True
+                "❌ You don't have permission to use this command", ephemeral=True
             )
             return
 
@@ -112,24 +110,24 @@ class AdminCog(commands.Cog):
 
             onboarded = [m for m in total_members if m.onboarding_status > 0]
 
-        embed = discord.Embed(
-            title="📊 Server Statistics",
-            color=discord.Color.blue()
-        )
+        embed = discord.Embed(title="📊 Server Statistics", color=discord.Color.blue())
         embed.add_field(name="Total Members in DB", value=str(len(total_members)))
         embed.add_field(name="Onboarded", value=str(len(onboarded)))
-        embed.add_field(name="Not Onboarded", value=str(len(total_members) - len(onboarded)))
+        embed.add_field(
+            name="Not Onboarded", value=str(len(total_members) - len(onboarded))
+        )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="list_members", description="List all members in database")
+    @app_commands.command(
+        name="list_members", description="List all members in database"
+    )
     async def slash_list_members(self, interaction: discord.Interaction):
         """List all members (admin only)"""
         # Check admin permission
         if not self.is_admin(interaction.user.id, interaction.guild.id):
             await interaction.response.send_message(
-                "❌ You don't have permission to use this command",
-                ephemeral=True
+                "❌ You don't have permission to use this command", ephemeral=True
             )
             return
 
@@ -140,8 +138,7 @@ class AdminCog(commands.Cog):
 
         if not members:
             await interaction.response.send_message(
-                "No members found in database",
-                ephemeral=True
+                "No members found in database", ephemeral=True
             )
             return
 
@@ -156,7 +153,7 @@ class AdminCog(commands.Cog):
         embed = discord.Embed(
             title="Members in Database",
             description="\n".join(member_list),
-            color=discord.Color.green()
+            color=discord.Color.green(),
         )
 
         if len(members) > 20:
@@ -164,7 +161,7 @@ class AdminCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @commands.command(name='shutdown')
+    @commands.command(name="shutdown")
     @commands.is_owner()  # Only bot owner can shutdown
     async def cmd_shutdown(self, ctx: commands.Context):
         """Shutdown the bot (owner only)"""
@@ -178,8 +175,7 @@ class AdminCog(commands.Cog):
         # Check admin permission
         if not self.is_admin(interaction.user.id, interaction.guild.id):
             await interaction.response.send_message(
-                "❌ You don't have permission to use this command",
-                ephemeral=True
+                "❌ You don't have permission to use this command", ephemeral=True
             )
             return
 
@@ -188,13 +184,11 @@ class AdminCog(commands.Cog):
         try:
             synced = await self.bot.tree.sync()
             await interaction.followup.send(
-                f"✅ Synced {len(synced)} commands",
-                ephemeral=True
+                f"✅ Synced {len(synced)} commands", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
-                f"❌ Failed to sync commands: {e}",
-                ephemeral=True
+                f"❌ Failed to sync commands: {e}", ephemeral=True
             )
 
 

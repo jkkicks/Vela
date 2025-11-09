@@ -1,4 +1,5 @@
 """HTMX router for dynamic HTML fragment updates"""
+
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -24,30 +25,29 @@ async def search_users(
     request: Request,
     q: str = "",
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Search users and return table fragment"""
     query = select(Member)
 
     # Filter by guild if not super admin
-    if not current_user['is_super_admin']:
-        query = query.where(Member.guild_id == current_user['guild_id'])
+    if not current_user["is_super_admin"]:
+        query = query.where(Member.guild_id == current_user["guild_id"])
 
     # Search filter
     if q:
         query = query.where(
-            (Member.username.contains(q)) |
-            (Member.nickname.contains(q)) |
-            (Member.firstname.contains(q)) |
-            (Member.lastname.contains(q))
+            (Member.username.contains(q))
+            | (Member.nickname.contains(q))
+            | (Member.firstname.contains(q))
+            | (Member.lastname.contains(q))
         )
 
     users = session.exec(query).all()
 
-    return templates.TemplateResponse("fragments/user_table.html", {
-        "request": request,
-        "users": users
-    })
+    return templates.TemplateResponse(
+        "fragments/user_table.html", {"request": request, "users": users}
+    )
 
 
 @router.get("/users/{user_id}/edit", response_class=HTMLResponse)
@@ -55,24 +55,21 @@ async def edit_user_form(
     request: Request,
     user_id: int,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Return edit form for user"""
-    user = session.exec(
-        select(Member).where(Member.id == user_id)
-    ).first()
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
 
     if not user:
         raise HTTPException(404, "User not found")
 
     # Check permission
-    if not current_user['is_super_admin'] and user.guild_id != current_user['guild_id']:
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
         raise HTTPException(403, "Access denied")
 
-    return templates.TemplateResponse("fragments/user_edit_form.html", {
-        "request": request,
-        "user": user
-    })
+    return templates.TemplateResponse(
+        "fragments/user_edit_form.html", {"request": request, "user": user}
+    )
 
 
 @router.put("/users/{user_id}", response_class=HTMLResponse)
@@ -83,18 +80,16 @@ async def update_user(
     lastname: str = Form(...),
     email: str = Form(None),
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Update user and return updated row"""
-    user = session.exec(
-        select(Member).where(Member.id == user_id)
-    ).first()
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
 
     if not user:
         raise HTTPException(404, "User not found")
 
     # Check permission
-    if not current_user['is_super_admin'] and user.guild_id != current_user['guild_id']:
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
         raise HTTPException(403, "Access denied")
 
     # Update user
@@ -110,57 +105,47 @@ async def update_user(
     audit_log = AuditLog(
         guild_id=user.guild_id,
         user_id=user.user_id,
-        discord_username=current_user['username'],
+        discord_username=current_user["username"],
         action="user_updated",
         details={
-            "updated_by": current_user['username'],
-            "changes": {
-                "firstname": firstname,
-                "lastname": lastname,
-                "email": email
-            }
-        }
+            "updated_by": current_user["username"],
+            "changes": {"firstname": firstname, "lastname": lastname, "email": email},
+        },
     )
     session.add(audit_log)
     session.commit()
 
-    return templates.TemplateResponse("fragments/user_row.html", {
-        "request": request,
-        "user": user
-    })
+    return templates.TemplateResponse(
+        "fragments/user_row.html", {"request": request, "user": user}
+    )
 
 
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: int,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Delete user and return empty response for row removal"""
-    user = session.exec(
-        select(Member).where(Member.id == user_id)
-    ).first()
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
 
     if not user:
         raise HTTPException(404, "User not found")
 
     # Check permission
-    if not current_user['is_super_admin'] and user.guild_id != current_user['guild_id']:
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
         raise HTTPException(403, "Access denied")
 
     # Log before deletion
     audit_log = AuditLog(
         guild_id=user.guild_id,
         user_id=user.user_id,
-        discord_username=current_user['username'],
+        discord_username=current_user["username"],
         action="user_deleted",
         details={
-            "deleted_by": current_user['username'],
-            "user_data": {
-                "username": user.username,
-                "nickname": user.nickname
-            }
-        }
+            "deleted_by": current_user["username"],
+            "user_data": {"username": user.username, "nickname": user.nickname},
+        },
     )
     session.add(audit_log)
 
@@ -175,18 +160,16 @@ async def delete_user(
 async def reset_onboarding(
     user_id: int,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Reset user's onboarding status"""
-    user = session.exec(
-        select(Member).where(Member.id == user_id)
-    ).first()
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
 
     if not user:
         raise HTTPException(404, "User not found")
 
     # Check permission
-    if not current_user['is_super_admin'] and user.guild_id != current_user['guild_id']:
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
         raise HTTPException(403, "Access denied")
 
     # Reset onboarding
@@ -201,9 +184,9 @@ async def reset_onboarding(
     audit_log = AuditLog(
         guild_id=user.guild_id,
         user_id=user.user_id,
-        discord_username=current_user['username'],
+        discord_username=current_user["username"],
         action="onboarding_reset",
-        details={"reset_by": current_user['username']}
+        details={"reset_by": current_user["username"]},
     )
     session.add(audit_log)
     session.commit()
@@ -216,21 +199,18 @@ async def edit_config_form(
     request: Request,
     key: str,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Return edit form for configuration"""
     config = session.exec(
         select(Config).where(
-            Config.key == key,
-            Config.guild_id == current_user['guild_id']
+            Config.key == key, Config.guild_id == current_user["guild_id"]
         )
     ).first()
 
-    return templates.TemplateResponse("fragments/config_form.html", {
-        "request": request,
-        "config": config,
-        "key": key
-    })
+    return templates.TemplateResponse(
+        "fragments/config_form.html", {"request": request, "config": config, "key": key}
+    )
 
 
 @router.post("/config/{key}")
@@ -239,13 +219,12 @@ async def update_config(
     value: str = Form(...),
     description: str = Form(None),
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Update configuration value"""
     config = session.exec(
         select(Config).where(
-            Config.key == key,
-            Config.guild_id == current_user['guild_id']
+            Config.key == key, Config.guild_id == current_user["guild_id"]
         )
     ).first()
 
@@ -258,8 +237,8 @@ async def update_config(
         config = Config(
             key=key,
             value=value,
-            guild_id=current_user['guild_id'],
-            description=description
+            guild_id=current_user["guild_id"],
+            description=description,
         )
         session.add(config)
 
@@ -267,14 +246,10 @@ async def update_config(
 
     # Log the action
     audit_log = AuditLog(
-        guild_id=current_user['guild_id'],
-        discord_username=current_user['username'],
+        guild_id=current_user["guild_id"],
+        discord_username=current_user["username"],
         action="config_updated",
-        details={
-            "key": key,
-            "value": value,
-            "updated_by": current_user['username']
-        }
+        details={"key": key, "value": value, "updated_by": current_user["username"]},
     )
     session.add(audit_log)
     session.commit()
@@ -287,17 +262,16 @@ async def stream_logs(
     request: Request,
     last_id: int = 0,
     session: Session = Depends(get_session),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Stream new log entries"""
     query = select(AuditLog).where(AuditLog.id > last_id)
 
-    if not current_user['is_super_admin']:
-        query = query.where(AuditLog.guild_id == current_user['guild_id'])
+    if not current_user["is_super_admin"]:
+        query = query.where(AuditLog.guild_id == current_user["guild_id"])
 
     logs = session.exec(query.order_by(AuditLog.timestamp.desc()).limit(10)).all()
 
-    return templates.TemplateResponse("fragments/log_entries.html", {
-        "request": request,
-        "logs": logs
-    })
+    return templates.TemplateResponse(
+        "fragments/log_entries.html", {"request": request, "logs": logs}
+    )

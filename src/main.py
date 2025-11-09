@@ -1,4 +1,5 @@
 """Main entry point for running both Discord bot and FastAPI server"""
+
 import asyncio
 import logging
 import os
@@ -12,11 +13,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.bot.main import VelaBot
-from src.api.main import app
 from src.shared.config import settings
 from src.shared.database import init_database, get_session
 from src.shared.models import Guild, AdminUser
 from sqlmodel import select
+
 
 # Custom logging filter to suppress expected CancelledError during shutdown
 class SuppressCancelledErrorFilter(logging.Filter):
@@ -24,28 +25,26 @@ class SuppressCancelledErrorFilter(logging.Filter):
         # Suppress CancelledError tracebacks from starlette/uvicorn during shutdown
         if record.exc_info:
             exc_type = record.exc_info[0]
-            if exc_type and exc_type.__name__ == 'CancelledError':
+            if exc_type and exc_type.__name__ == "CancelledError":
                 return False
         return True
 
+
 # Setup logging - default to ./data unless overridden
-data_dir = os.getenv('DATA_DIR', './data')
+data_dir = os.getenv("DATA_DIR", "./data")
 os.makedirs(data_dir, exist_ok=True)
 
-log_file = os.getenv('LOG_FILE', os.path.join(data_dir, 'vela.log'))
+log_file = os.getenv("LOG_FILE", os.path.join(data_dir, "vela.log"))
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
 # Add filter to uvicorn and starlette loggers to suppress CancelledError
-for logger_name in ['uvicorn.error', 'uvicorn', 'starlette']:
+for logger_name in ["uvicorn.error", "uvicorn", "starlette"]:
     log = logging.getLogger(logger_name)
     log.addFilter(SuppressCancelledErrorFilter())
 
@@ -62,19 +61,19 @@ async def run_bot():
 
         # Also attach to the FastAPI app so it's accessible from routers
         from src.api.main import app as fastapi_app
+
         fastapi_app.state.bot = bot
 
         # Get bot token from database or environment
         token = None
         with next(get_session()) as session:
             # Try to get token from the first active guild
-            guild = session.exec(
-                select(Guild).where(Guild.is_active == True).limit(1)
-            ).first()
+            guild = session.exec(select(Guild).where(Guild.is_active).limit(1)).first()
 
             if guild and guild.bot_token:
                 try:
                     from src.shared.config import decrypt_value
+
                     token = decrypt_value(guild.bot_token)
                 except Exception as e:
                     logger.warning(f"Failed to decrypt token from database: {e}")
@@ -85,7 +84,9 @@ async def run_bot():
             token = settings.bot_token
 
         if not token or token == "your_bot_token_here":
-            logger.info("No valid bot token configured. Bot will not start until setup is complete.")
+            logger.info(
+                "No valid bot token configured. Bot will not start until setup is complete."
+            )
             return
 
         logger.info("Starting Discord bot...")
@@ -96,10 +97,10 @@ async def run_bot():
         if bot_instance and not bot_instance.is_closed():
             await bot_instance.close()
         raise
-    except discord.LoginFailure as e:
-        logger.error(f"Failed to login to Discord: Invalid token")
-        print(f"❌ Failed to start Discord bot: Invalid or improper token")
-        print(f"   Please configure a valid bot token via the setup interface")
+    except discord.LoginFailure:
+        logger.error("Failed to login to Discord: Invalid token")
+        print("❌ Failed to start Discord bot: Invalid or improper token")
+        print("   Please configure a valid bot token via the setup interface")
         # Don't raise - allow the application to continue running
     except Exception as e:
         logger.error(f"Bot error: {e}")
@@ -118,7 +119,7 @@ async def run_api():
             host=settings.api_host,
             port=settings.api_port,
             log_level=settings.log_level.lower(),
-            reload=settings.debug
+            reload=settings.debug,
         )
         server = uvicorn.Server(config)
 
@@ -140,7 +141,7 @@ async def run_api():
 async def shutdown(tasks, signal_name="SIGINT"):
     """Gracefully shutdown all tasks"""
     logger.info(f"Received {signal_name}, shutting down...")
-    print(f"\n🛑 Shutting down Vela...")
+    print("\n🛑 Shutting down Vela...")
 
     # Cancel all tasks
     for task in tasks:
@@ -150,8 +151,7 @@ async def shutdown(tasks, signal_name="SIGINT"):
     # Wait for tasks to be cancelled (with timeout)
     try:
         await asyncio.wait_for(
-            asyncio.gather(*tasks, return_exceptions=True),
-            timeout=5.0
+            asyncio.gather(*tasks, return_exceptions=True), timeout=5.0
         )
     except asyncio.TimeoutError:
         logger.warning("Some tasks did not complete within timeout")
@@ -172,16 +172,18 @@ async def shutdown(tasks, signal_name="SIGINT"):
 
 async def main():
     """Run both services concurrently"""
-    print("""
+    print(
+        """
     ╔═══════════════════════════════════════╗
     ║           Vela v2.0.0                 ║
     ║  Discord Onboarding Bot with Web UI   ║
     ╚═══════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Initialize database
     logger.info("Initializing database...")
-    is_initialized = init_database()
+    init_database()
 
     # Check if setup has been completed (admin user exists)
     setup_completed = False
@@ -191,7 +193,9 @@ async def main():
 
     if not setup_completed:
         print("\n⚠️  First-run setup required!")
-        print(f"Please visit http://localhost:{settings.api_port}/setup to complete initial configuration\n")
+        print(
+            f"Please visit http://localhost:{settings.api_port}/setup to complete initial configuration\n"
+        )
 
     # Create tasks for both services
     tasks = []
