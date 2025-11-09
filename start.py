@@ -14,8 +14,26 @@ def is_venv():
         os.environ.get('VIRTUAL_ENV') is not None
     )
 
+def verify_venv_python_version(venv_python):
+    """Verify the venv is using Python 3.13"""
+    try:
+        result = subprocess.run(
+            [str(venv_python), '--version'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        version = result.stdout.strip()
+
+        if '3.13' not in version:
+            return False, version
+        return True, version
+    except Exception:
+        return False, "Unknown"
+
+
 def check_venv():
-    """Check if venv exists and create/activate if needed"""
+    """Check if venv exists and use it automatically"""
     venv_path = Path('.venv')
 
     # If already in a venv, we're good
@@ -25,53 +43,32 @@ def check_venv():
 
     print("📦 Checking virtual environment...")
 
-    # Check if .venv exists
-    if venv_path.exists():
-        print("✅ Virtual environment found at .venv/")
-    else:
-        print("🔨 Creating virtual environment at .venv/...")
-        try:
-            import venv
-            venv.create('.venv', with_pip=True)
-            print("✅ Virtual environment created")
-        except Exception as e:
-            print(f"❌ Failed to create virtual environment: {e}")
-            return False
-
     # Determine the path to the venv python
     if sys.platform == 'win32':
         venv_python = venv_path / 'Scripts' / 'python.exe'
-        venv_pip = venv_path / 'Scripts' / 'pip.exe'
     else:
         venv_python = venv_path / 'bin' / 'python'
-        venv_pip = venv_path / 'bin' / 'pip'
 
-    # Check if dependencies are installed
-    print("📦 Checking dependencies...")
-    try:
-        result = subprocess.run(
-            [str(venv_pip), 'show', 'fastapi'],
-            capture_output=True,
-            text=True
-        )
+    # Check if .venv exists
+    if not venv_path.exists() or not venv_python.exists():
+        print("❌ Virtual environment not found!")
+        print("\nPlease run the setup script first:")
+        print("  python setup_venv.py")
+        return False
 
-        if result.returncode != 0:
-            # Dependencies not installed
-            print("📥 Installing dependencies (this may take a minute)...")
-            install_result = subprocess.run(
-                [str(venv_pip), 'install', '-r', 'requirements.txt'],
-                capture_output=False  # Show output to user
-            )
+    print("✅ Virtual environment found at .venv/")
 
-            if install_result.returncode != 0:
-                print("❌ Failed to install dependencies")
-                return False
+    # Verify Python version
+    is_correct_version, version = verify_venv_python_version(venv_python)
 
-            print("✅ Dependencies installed")
-        else:
-            print("✅ Dependencies already installed")
-    except Exception as e:
-        print(f"⚠️  Could not verify dependencies: {e}")
+    if not is_correct_version:
+        print(f"⚠️  Wrong Python version in venv: {version}")
+        print("Expected: Python 3.13.x")
+        print("\nPlease recreate the virtual environment:")
+        print("  python setup_venv.py")
+        return False
+
+    print(f"✅ Using {version}")
 
     # Re-execute this script in the venv
     print("\n🔄 Restarting in virtual environment...\n")
