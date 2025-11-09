@@ -12,11 +12,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.bot.main import VelaBot
-from src.shared.config import settings
-from src.shared.database import init_database, get_session
-from src.shared.models import Guild, AdminUser
-from sqlmodel import select
+from src.bot.main import VelaBot  # noqa: E402
+from src.shared.config import settings  # noqa: E402
+from src.shared.database import init_database, get_session  # noqa: E402
+from src.shared.models import Guild, AdminUser  # noqa: E402
+from sqlmodel import select  # noqa: E402
 
 
 # Custom logging filter to suppress expected CancelledError during shutdown
