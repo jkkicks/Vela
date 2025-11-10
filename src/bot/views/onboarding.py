@@ -538,10 +538,17 @@ class OnboardingView(discord.ui.View):
 class OnboardingApprovalView(discord.ui.View):
     """View with approve/deny buttons for onboarding requests"""
 
-    def __init__(self, user_id: int, guild_id: int):
+    def __init__(self, user_id: int = None, guild_id: int = None):
         super().__init__(timeout=None)  # Persistent view
         self.user_id = user_id
         self.guild_id = guild_id
+
+    def _parse_custom_id(self, custom_id: str) -> tuple[int, int]:
+        """Parse user_id and guild_id from custom_id format: vela:approve_onboarding:user_id:guild_id"""
+        parts = custom_id.split(":")
+        if len(parts) >= 4:
+            return int(parts[2]), int(parts[3])
+        return self.user_id, self.guild_id
 
     async def check_approver_permission(self, interaction: Interaction) -> bool:
         """Check if the user has permission to approve/deny requests"""
@@ -584,6 +591,26 @@ class OnboardingApprovalView(discord.ui.View):
         self, interaction: Interaction, button: discord.ui.Button
     ):
         """Handle approve button click"""
+        # Extract user_id and guild_id from the message embed
+        if not self.user_id or not self.guild_id:
+            # Parse from embed
+            if interaction.message.embeds:
+                embed = interaction.message.embeds[0]
+                # Extract user_id from the "User ID" field
+                for field in embed.fields:
+                    if field.name == "User ID":
+                        self.user_id = int(field.value)
+                        break
+                # Guild ID is from the interaction
+                self.guild_id = interaction.guild.id
+
+        if not self.user_id or not self.guild_id:
+            await interaction.response.send_message(
+                "❌ Could not determine user information from this request.",
+                ephemeral=True,
+            )
+            return
+
         # Check permission
         if not await self.check_approver_permission(interaction):
             await interaction.response.send_message(
@@ -728,6 +755,26 @@ class OnboardingApprovalView(discord.ui.View):
     )
     async def deny_button(self, interaction: Interaction, button: discord.ui.Button):
         """Handle deny button click"""
+        # Extract user_id and guild_id from the message embed
+        if not self.user_id or not self.guild_id:
+            # Parse from embed
+            if interaction.message.embeds:
+                embed = interaction.message.embeds[0]
+                # Extract user_id from the "User ID" field
+                for field in embed.fields:
+                    if field.name == "User ID":
+                        self.user_id = int(field.value)
+                        break
+                # Guild ID is from the interaction
+                self.guild_id = interaction.guild.id
+
+        if not self.user_id or not self.guild_id:
+            await interaction.response.send_message(
+                "❌ Could not determine user information from this request.",
+                ephemeral=True,
+            )
+            return
+
         # Check permission
         if not await self.check_approver_permission(interaction):
             await interaction.response.send_message(

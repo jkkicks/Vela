@@ -33,9 +33,10 @@ class VelaBot(commands.Bot):
     async def setup_hook(self) -> None:
         """Setup persistent views and load cogs"""
         # Import and add persistent views
-        from src.bot.views.onboarding import OnboardingView
+        from src.bot.views.onboarding import OnboardingView, OnboardingApprovalView
 
         self.add_view(OnboardingView())
+        self.add_view(OnboardingApprovalView())  # Add approval view for persistent handling
 
         # Load all cogs
         await self.load_cogs()
