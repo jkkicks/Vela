@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord import app_commands
 import random
 import logging
+from src.bot.permissions import require_command_permission, command_permission_check
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ class UtilityCog(commands.Cog):
         self.bot = bot
 
     @commands.command(name="99")
+    @command_permission_check()
     async def cmd_nine_nine(self, ctx: commands.Context):
         """Brooklyn Nine-Nine quotes"""
         brooklyn_99_quotes = [
@@ -34,6 +36,7 @@ class UtilityCog(commands.Cog):
         await ctx.send(response)
 
     @app_commands.command(name="ping", description="Check bot latency")
+    @require_command_permission()
     async def slash_ping(self, interaction: discord.Interaction):
         """Check bot latency"""
         latency = round(self.bot.latency * 1000)
@@ -42,6 +45,7 @@ class UtilityCog(commands.Cog):
         )
 
     @app_commands.command(name="help", description="Get help with bot commands")
+    @require_command_permission()
     async def slash_help(self, interaction: discord.Interaction):
         """Display help information"""
         embed = discord.Embed(
@@ -87,6 +91,7 @@ class UtilityCog(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="about", description="About Vela")
+    @require_command_permission()
     async def slash_about(self, interaction: discord.Interaction):
         """Display information about the bot"""
         embed = discord.Embed(
@@ -116,6 +121,7 @@ class UtilityCog(commands.Cog):
     @app_commands.command(
         name="server_info", description="Get information about this server"
     )
+    @require_command_permission()
     async def slash_server_info(self, interaction: discord.Interaction):
         """Display server information"""
         guild = interaction.guild

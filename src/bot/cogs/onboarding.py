@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from src.shared.database import get_session
 from src.shared.models import Member, Role, AuditLog
+from src.bot.permissions import require_command_permission, command_permission_check
 from sqlmodel import select
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,7 @@ class OnboardingCog(commands.Cog):
             return False
 
     @commands.command(name="reinit")
+    @command_permission_check()
     async def cmd_reinit(self, ctx: commands.Context):
         """Re-initialize a user in the database"""
         try:
@@ -141,11 +143,13 @@ class OnboardingCog(commands.Cog):
             await ctx.send("❌ Error reinitializing user")
 
     @commands.command(name="nick")
+    @command_permission_check()
     async def cmd_nick(self, ctx: commands.Context):
         """View current nickname"""
         await ctx.send(f"You are {ctx.author.nick or ctx.author.name}")
 
     @commands.command(name="setnick")
+    @command_permission_check()
     async def cmd_setnick(self, ctx: commands.Context, firstname: str, lastname: str):
         """Change nickname (use two words separated by a space)"""
         success = await self.update_member_nickname(ctx.author, firstname, lastname)
@@ -156,6 +160,7 @@ class OnboardingCog(commands.Cog):
 
     @app_commands.command(name="onboard", description="Complete your onboarding")
     @app_commands.describe(firstname="Your first name", lastname="Your last name")
+    @require_command_permission()
     async def slash_onboard(
         self, interaction: discord.Interaction, firstname: str, lastname: str
     ):

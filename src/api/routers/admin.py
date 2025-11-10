@@ -233,6 +233,35 @@ async def onboarding_app_page(
     )
 
 
+@router.get("/apps/commands", response_class=HTMLResponse)
+async def commands_app_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Slash Commands app configuration page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    # Get all roles for this guild
+    roles = session.exec(
+        select(Role).where(Role.guild_id == current_user["guild_id"])
+    ).all()
+
+    return templates.TemplateResponse(
+        "pages/apps/commands.html",
+        {
+            "request": request,
+            "title": "Slash Commands Configuration",
+            "guild": guild,
+            "roles": roles,
+            "current_user": current_user,
+        },
+    )
+
+
 @router.get("/logs", response_class=HTMLResponse)
 async def logs_page(
     request: Request,

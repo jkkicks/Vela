@@ -7,6 +7,7 @@ import logging
 import sys
 from src.shared.database import get_session
 from src.shared.models import Member, AdminUser, AuditLog
+from src.bot.permissions import require_command_permission, command_permission_check
 from sqlmodel import select
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ class AdminCog(commands.Cog):
         name="remove", description="Remove user from database and reset nickname"
     )
     @app_commands.describe(member="The member you want to remove")
+    @require_command_permission()
     async def slash_remove(
         self, interaction: discord.Interaction, member: discord.Member
     ):
@@ -93,6 +95,7 @@ class AdminCog(commands.Cog):
             )
 
     @app_commands.command(name="stats", description="View server statistics")
+    @require_command_permission()
     async def slash_stats(self, interaction: discord.Interaction):
         """View server statistics (admin only)"""
         # Check admin permission
@@ -122,6 +125,7 @@ class AdminCog(commands.Cog):
     @app_commands.command(
         name="list_members", description="List all members in database"
     )
+    @require_command_permission()
     async def slash_list_members(self, interaction: discord.Interaction):
         """List all members (admin only)"""
         # Check admin permission
@@ -163,6 +167,7 @@ class AdminCog(commands.Cog):
 
     @commands.command(name="shutdown")
     @commands.is_owner()  # Only bot owner can shutdown
+    @command_permission_check()
     async def cmd_shutdown(self, ctx: commands.Context):
         """Shutdown the bot (owner only)"""
         await ctx.send("Shutting down! 👋")
@@ -170,6 +175,7 @@ class AdminCog(commands.Cog):
         sys.exit(0)
 
     @app_commands.command(name="sync", description="Sync slash commands")
+    @require_command_permission()
     async def slash_sync(self, interaction: discord.Interaction):
         """Sync slash commands (admin only)"""
         # Check admin permission

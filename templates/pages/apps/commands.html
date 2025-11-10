@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/admin/apps" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Slash Commands</h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Configure command permissions for {{ guild.guild_name if guild else 'your server' }}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Commands:</span>
+            <span class="px-3 py-1 text-sm rounded-full {% if guild and guild.settings.get('slash_commands_enabled', True) %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                {% if guild and guild.settings.get('slash_commands_enabled', True) %}Enabled{% else %}Disabled{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Global Enable/Disable -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Global Command Settings</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Enable or disable all bot commands. When disabled, no one can use any commands.
+        </p>
+
+        <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-3 {% if guild and guild.settings.get('slash_commands_enabled', True) %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">All Commands</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {% if guild and guild.settings.get('slash_commands_enabled', True) %}Commands are currently enabled{% else %}Commands are currently disabled{% endif %}
+                    </p>
+                </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                    type="checkbox"
+                    class="sr-only peer"
+                    id="commands_global_toggle"
+                    onchange="toggleGlobalCommands(this.checked)"
+                    {% if guild and guild.settings.get('slash_commands_enabled', True) %}checked{% endif %}
+                >
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Role Permissions -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Allowed Roles</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Select which roles are allowed to use slash commands. Users without these roles will not be able to execute any commands. If no roles are selected, all users can use commands.
+        </p>
+
+        <!-- Current allowed roles -->
+        <div class="mb-4">
+            <div id="selectedRolesContainer" class="space-y-2 mb-4">
+                {% if guild and guild.settings.get('commands_allowed_roles') %}
+                    {% for role_id in guild.settings.get('commands_allowed_roles', []) %}
+                        {% for role in roles %}
+                            {% if role.role_id == role_id %}
+                                <div class="flex items-center justify-between p-3 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg" data-role-id="{{ role.role_id }}">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <h3 class="text-sm font-medium text-gray-900 dark:text-white">@{{ role.role_name }}</h3>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ role.role_id }}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onclick="removeRole('{{ role.role_id }}')"
+                                        class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                                    >
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <div id="noRolesMessage" class="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+                        <svg class="w-5 h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-white">No role restrictions</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">All users can currently use commands</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Add role selector -->
+            <div class="flex items-center gap-3">
+                <select
+                    id="roleSelector"
+                    class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="">Select a role to add...</option>
+                    {% for role in roles %}
+                        <option value="{{ role.role_id }}" data-role-name="{{ role.role_name }}">@{{ role.role_name }}</option>
+                    {% endfor %}
+                </select>
+                <button
+                    onclick="addRole()"
+                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Add Role
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-end">
+            <button
+                onclick="savePermissions()"
+                class="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                Save Permissions
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <div class="flex">
+            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <h3 class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">How Command Permissions Work</h3>
+                <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                    <li>When commands are disabled globally, no one can use any commands regardless of roles</li>
+                    <li>If no roles are selected, all users in the server can use commands</li>
+                    <li>If roles are selected, only users with at least one of those roles can use commands</li>
+                    <li>Server administrators always have permission to use commands</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selectedRoles = new Set({{ (guild.settings.get('commands_allowed_roles', []) | tojson) if guild else '[]' }});
+
+async function toggleGlobalCommands(enabled) {
+    try {
+        const response = await fetch('/api/apps/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                app_name: 'slash_commands',
+                enabled: enabled
+            })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to toggle commands'}`);
+            document.getElementById('commands_global_toggle').checked = !enabled;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error toggling commands');
+        document.getElementById('commands_global_toggle').checked = !enabled;
+    }
+}
+
+function addRole() {
+    const selector = document.getElementById('roleSelector');
+    const roleId = selector.value;
+    const roleName = selector.options[selector.selectedIndex].getAttribute('data-role-name');
+
+    if (!roleId) {
+        alert('Please select a role');
+        return;
+    }
+
+    if (selectedRoles.has(parseInt(roleId))) {
+        alert('Role already added');
+        return;
+    }
+
+    selectedRoles.add(parseInt(roleId));
+
+    // Add to UI
+    const container = document.getElementById('selectedRolesContainer');
+
+    // Remove "no roles" message if it exists
+    const noRolesMessage = document.getElementById('noRolesMessage');
+    if (noRolesMessage) {
+        noRolesMessage.remove();
+    }
+
+    const roleElement = document.createElement('div');
+    roleElement.className = 'flex items-center justify-between p-3 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg';
+    roleElement.setAttribute('data-role-id', roleId);
+    roleElement.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white">@${roleName}</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">ID: ${roleId}</p>
+            </div>
+        </div>
+        <button
+            onclick="removeRole('${roleId}')"
+            class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+        >
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    `;
+
+    container.appendChild(roleElement);
+    selector.value = '';
+}
+
+function removeRole(roleId) {
+    selectedRoles.delete(parseInt(roleId));
+
+    const roleElement = document.querySelector(`[data-role-id="${roleId}"]`);
+    if (roleElement) {
+        roleElement.remove();
+    }
+
+    // If no roles left, show "no roles" message
+    const container = document.getElementById('selectedRolesContainer');
+    if (selectedRoles.size === 0 && !document.getElementById('noRolesMessage')) {
+        const noRolesDiv = document.createElement('div');
+        noRolesDiv.id = 'noRolesMessage';
+        noRolesDiv.className = 'flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900';
+        noRolesDiv.innerHTML = `
+            <svg class="w-5 h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white">No role restrictions</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">All users can currently use commands</p>
+            </div>
+        `;
+        container.appendChild(noRolesDiv);
+    }
+}
+
+async function savePermissions() {
+    try {
+        const response = await fetch('/api/commands/permissions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                allowed_roles: Array.from(selectedRoles)
+            })
+        });
+
+        if (response.ok) {
+            alert('Permissions saved successfully!');
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to save permissions'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error saving permissions');
+    }
+}
+</script>
+{% endblock %}

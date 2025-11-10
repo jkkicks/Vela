@@ -925,6 +925,7 @@ async def toggle_app(
         "onboarding": "onboarding_enabled",
         "member_management": "member_management_enabled",
         "member_support": "member_support_enabled",
+        "slash_commands": "slash_commands_enabled",
     }
 
     setting_key = app_settings_map.get(app_name)
@@ -982,6 +983,59 @@ async def toggle_app(
     return {
         "message": f"App {app_name} {'enabled' if enabled else 'disabled'} successfully"
     }
+
+
+@router.post("/commands/permissions")
+async def save_command_permissions(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Save slash command permissions"""
+    data = await request.json()
+    allowed_roles = data.get("allowed_roles", [])
+
+    # Validate that all role IDs are integers
+    try:
+        allowed_roles = [int(role_id) for role_id in allowed_roles]
+    except (ValueError, TypeError):
+        raise HTTPException(400, "Invalid role IDs provided")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    guild.settings["commands_allowed_roles"] = allowed_roles
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="command_permissions_updated",
+        details={"allowed_roles": allowed_roles},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(
+        f"Command permissions updated by {current_user['username']}: {len(allowed_roles)} roles"
+    )
+
+    return {"message": "Command permissions saved successfully"}
 
 
 @router.post("/config/onboarding/fields")
