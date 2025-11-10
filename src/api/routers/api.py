@@ -333,12 +333,18 @@ async def configure_channel(
 ):
     """Configure a channel for the guild"""
     data = await request.json()
-    channel_id = data.get("channel_id")
+    channel_id_raw = data.get("channel_id")
     channel_type = data.get("channel_type")
     name = data.get("name")
 
-    if not channel_id or not channel_type:
+    if not channel_id_raw or not channel_type:
         raise HTTPException(400, "channel_id and channel_type are required")
+
+    # Convert channel_id to int, handling both string and int input
+    try:
+        channel_id = int(channel_id_raw)
+    except (ValueError, TypeError):
+        raise HTTPException(400, "channel_id must be a valid integer")
 
     # Check if channel already exists
     existing_channel = session.exec(
@@ -389,33 +395,67 @@ async def configure_role(
 ):
     """Configure a role for the guild"""
     data = await request.json()
-    role_id = data.get("role_id")
+    role_id_raw = data.get("role_id")
     role_type = data.get("role_type")
     role_name = data.get("role_name")
 
-    if not role_id or not role_type or not role_name:
+    if not role_id_raw or not role_type or not role_name:
         raise HTTPException(400, "role_id, role_type, and role_name are required")
 
-    # Check if role already exists
-    existing_role = session.exec(
-        select(Role).where(
-            Role.guild_id == current_user["guild_id"], Role.role_type == role_type
-        )
-    ).first()
+    # Convert role_id to int
+    try:
+        role_id = int(role_id_raw)
+    except (ValueError, TypeError):
+        raise HTTPException(400, f"Invalid role_id: {role_id_raw}")
 
-    if existing_role:
-        # Update existing role
-        existing_role.role_id = role_id
-        existing_role.role_name = role_name
+    logger.info(
+        f"Configuring role: role_id={role_id} (type={type(role_id)}), role_type={role_type}, role_name={role_name}, guild_id={current_user['guild_id']}"
+    )
+
+    # For approver roles, we allow multiple roles of the same type
+    if role_type == "onboarding_approver":
+        # Check if this specific role_id already exists for this type
+        existing_role = session.exec(
+            select(Role).where(
+                Role.guild_id == current_user["guild_id"],
+                Role.role_type == role_type,
+                Role.role_id == role_id,
+            )
+        ).first()
+
+        if existing_role:
+            # Update existing role
+            existing_role.role_name = role_name
+        else:
+            # Create new role
+            role = Role(
+                role_id=role_id,
+                role_name=role_name,
+                role_type=role_type,
+                guild_id=current_user["guild_id"],
+            )
+            session.add(role)
     else:
-        # Create new role
-        role = Role(
-            role_id=role_id,
-            role_name=role_name,
-            role_type=role_type,
-            guild_id=current_user["guild_id"],
-        )
-        session.add(role)
+        # For other role types, only one role per type
+        existing_role = session.exec(
+            select(Role).where(
+                Role.guild_id == current_user["guild_id"], Role.role_type == role_type
+            )
+        ).first()
+
+        if existing_role:
+            # Update existing role
+            existing_role.role_id = role_id
+            existing_role.role_name = role_name
+        else:
+            # Create new role
+            role = Role(
+                role_id=role_id,
+                role_name=role_name,
+                role_type=role_type,
+                guild_id=current_user["guild_id"],
+            )
+            session.add(role)
 
     # Log the action
     audit_log = AuditLog(
@@ -431,6 +471,53 @@ async def configure_role(
     logger.info(f"Role {role_type} configured by {current_user['username']}")
 
     return {"message": "Role configured successfully"}
+
+
+@router.post("/config/role/delete")
+async def delete_role(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Delete a role configuration"""
+    data = await request.json()
+    role_id = data.get("role_id")
+    role_type = data.get("role_type")
+
+    if not role_id or not role_type:
+        raise HTTPException(400, "role_id and role_type are required")
+
+    # Find the role
+    role = session.exec(
+        select(Role).where(
+            Role.guild_id == current_user["guild_id"],
+            Role.role_id == role_id,
+            Role.role_type == role_type,
+        )
+    ).first()
+
+    if not role:
+        raise HTTPException(404, "Role not found")
+
+    # Delete the role
+    session.delete(role)
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="role_deleted",
+        details={"role_id": role_id, "role_type": role_type},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(
+        f"Role {role_type} (ID: {role_id}) deleted by {current_user['username']}"
+    )
+
+    return {"message": "Role deleted successfully"}
 
 
 @router.post("/config/setting")
@@ -480,6 +567,291 @@ async def update_setting(
     logger.info(f"Setting {key} updated to {value} by {current_user['username']}")
 
     return {"message": "Setting updated successfully"}
+
+
+@router.post("/config/welcome-message")
+async def update_welcome_message(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Update welcome message configuration"""
+    data = await request.json()
+    message_type = data.get("type", "embed")
+
+    if message_type not in ["embed", "plain"]:
+        raise HTTPException(400, "type must be 'embed' or 'plain'")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    # Build welcome message configuration
+    welcome_config = {"type": message_type}
+
+    if message_type == "plain":
+        welcome_config["content"] = data.get("content", "")
+    else:
+        # Embed configuration
+        embed_config = {
+            "title": data.get("title", "Welcome to the Server!"),
+            "description": data.get("description", ""),
+            "color": data.get("color", "green"),
+            "footer": data.get("footer", ""),
+        }
+
+        # Add fields if provided
+        fields = data.get("fields", [])
+        if fields:
+            embed_config["fields"] = fields
+
+        welcome_config["embed"] = embed_config
+
+    guild.settings["welcome_message_config"] = welcome_config
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="welcome_message_updated",
+        details={"type": message_type},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"Welcome message configuration updated by {current_user['username']}")
+
+    return {"message": "Welcome message configuration updated successfully"}
+
+
+@router.get("/discord/channels")
+async def get_discord_channels(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Get all text channels from Discord for the guild"""
+    try:
+        # Get bot instance from app state
+        bot = getattr(request.app.state, "bot", None)
+
+        if not bot or not bot.is_ready():
+            return {"channels": [], "error": "Bot is not connected to Discord"}
+
+        # Get the Discord guild
+        discord_guild = bot.get_guild(current_user["guild_id"])
+
+        if not discord_guild:
+            return {"channels": [], "error": "Guild not found in Discord"}
+
+        # Get all text channels
+        channels = []
+        for channel in discord_guild.text_channels:
+            channels.append(
+                {
+                    "id": str(channel.id),
+                    "name": channel.name,
+                    "category": channel.category.name if channel.category else None,
+                }
+            )
+
+        # Sort by category and name
+        channels.sort(key=lambda x: (x["category"] or "", x["name"]))
+
+        return {"channels": channels, "error": None}
+
+    except Exception as e:
+        logger.error(f"Error fetching Discord channels: {e}")
+        return {"channels": [], "error": str(e)}
+
+
+@router.get("/discord/roles")
+async def get_discord_roles(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Get all roles from Discord for the guild"""
+    try:
+        # Get bot instance from app state
+        bot = getattr(request.app.state, "bot", None)
+
+        if not bot or not bot.is_ready():
+            return {"roles": [], "error": "Bot is not connected to Discord"}
+
+        # Get the Discord guild
+        discord_guild = bot.get_guild(current_user["guild_id"])
+
+        if not discord_guild:
+            return {"roles": [], "error": "Guild not found in Discord"}
+
+        # Get all roles (excluding @everyone)
+        roles = []
+        for role in discord_guild.roles:
+            if role.name != "@everyone":
+                roles.append(
+                    {
+                        "id": str(role.id),
+                        "name": role.name,
+                        "color": str(role.color),
+                        "position": role.position,
+                    }
+                )
+
+        # Sort by position (highest first)
+        roles.sort(key=lambda x: x["position"], reverse=True)
+
+        return {"roles": roles, "error": None}
+
+    except Exception as e:
+        logger.error(f"Error fetching Discord roles: {e}")
+        return {"roles": [], "error": str(e)}
+
+
+@router.post("/welcome/update-message")
+async def update_welcome_message_endpoint(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Update the existing welcome message with new content"""
+    try:
+        # Get bot instance
+        bot = getattr(request.app.state, "bot", None)
+        if not bot or not bot.is_ready():
+            raise HTTPException(503, "Bot is not connected to Discord")
+
+        # Get welcome channel
+        welcome_channel = session.exec(
+            select(Channel).where(
+                Channel.guild_id == current_user["guild_id"],
+                Channel.channel_type == "welcome",
+            )
+        ).first()
+
+        if not welcome_channel:
+            raise HTTPException(404, "Welcome channel not configured")
+
+        if not welcome_channel.message_id:
+            raise HTTPException(
+                404,
+                "No welcome message exists yet. Use 'Send/Replace Message' instead.",
+            )
+
+        # Update the message
+        success, message = await bot.update_welcome_message(
+            current_user["guild_id"],
+            welcome_channel.channel_id,
+            welcome_channel.message_id,
+        )
+
+        if not success:
+            raise HTTPException(500, f"Failed to update message: {message}")
+
+        # Log the action
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=current_user["discord_id"],
+            discord_username=current_user["username"],
+            action="welcome_message_updated",
+            details={"message_id": welcome_channel.message_id},
+        )
+        session.add(audit_log)
+        session.commit()
+
+        logger.info(f"Welcome message updated by {current_user['username']}")
+        return {"message": "Welcome message updated successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating welcome message: {e}")
+        raise HTTPException(500, f"Error updating welcome message: {str(e)}")
+
+
+@router.post("/welcome/replace-message")
+async def replace_welcome_message_endpoint(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Delete the old welcome message and create a new one (or create if none exists)"""
+    try:
+        # Get bot instance
+        bot = getattr(request.app.state, "bot", None)
+        if not bot or not bot.is_ready():
+            raise HTTPException(503, "Bot is not connected to Discord")
+
+        # Get welcome channel
+        welcome_channel = session.exec(
+            select(Channel).where(
+                Channel.guild_id == current_user["guild_id"],
+                Channel.channel_type == "welcome",
+            )
+        ).first()
+
+        if not welcome_channel:
+            raise HTTPException(404, "Welcome channel not configured")
+
+        logger.info(
+            f"Replacing welcome message for guild {current_user['guild_id']}, "
+            f"channel {welcome_channel.channel_id}, message {welcome_channel.message_id}"
+        )
+
+        # Replace/create the message
+        success, message, new_message_id = await bot.replace_welcome_message(
+            current_user["guild_id"],
+            welcome_channel.channel_id,
+            welcome_channel.message_id,
+        )
+
+        logger.info(
+            f"Replace result: success={success}, message={message}, new_id={new_message_id}"
+        )
+
+        if not success:
+            raise HTTPException(500, f"Failed to replace message: {message}")
+
+        # Update the message ID in database
+        welcome_channel.message_id = new_message_id
+        session.add(welcome_channel)
+
+        # Log the action
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=current_user["discord_id"],
+            discord_username=current_user["username"],
+            action="welcome_message_replaced",
+            details={"new_message_id": new_message_id},
+        )
+        session.add(audit_log)
+        session.commit()
+
+        logger.info(f"Welcome message replaced by {current_user['username']}")
+        return {
+            "message": "Welcome message created/replaced successfully",
+            "message_id": new_message_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error replacing welcome message: {e}")
+        raise HTTPException(500, f"Error replacing welcome message: {str(e)}")
 
 
 @router.post("/config/reset")
@@ -552,6 +924,7 @@ async def toggle_app(
         "welcome_system": "welcome_enabled",
         "onboarding": "onboarding_enabled",
         "member_management": "member_management_enabled",
+        "member_support": "member_support_enabled",
     }
 
     setting_key = app_settings_map.get(app_name)
@@ -569,6 +942,20 @@ async def toggle_app(
     # Update settings
     if guild.settings is None:
         guild.settings = {}
+
+    # Handle app dependencies
+    dependencies = {
+        "onboarding": ["welcome_system"],  # Onboarding requires Welcome System
+        "member_support": ["welcome_system"],  # Member Support requires Welcome System
+    }
+
+    # If enabling an app with dependencies, auto-enable dependencies
+    if enabled and app_name in dependencies:
+        for dependency in dependencies[app_name]:
+            dependency_key = app_settings_map.get(dependency)
+            if dependency_key:
+                guild.settings[dependency_key] = True
+                logger.info(f"Auto-enabled {dependency} as dependency of {app_name}")
 
     guild.settings[setting_key] = enabled
 

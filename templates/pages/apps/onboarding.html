@@ -237,31 +237,218 @@
                     >
                 </label>
             </div>
+
+            <!-- Approval Mode -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Approval Mode</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        Choose whether to automatically approve onboarding requests or require manual approval
+                    </p>
+                    <div class="space-y-2">
+                        <label class="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name="approval_mode"
+                                value="auto"
+                                id="approval_mode_auto"
+                                onchange="updateApprovalMode('auto')"
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                {% if not guild or not guild.settings or guild.settings.get('onboarding_approval_mode', 'auto') == 'auto' %}checked{% endif %}
+                            >
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Auto Approval - Members are automatically onboarded</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name="approval_mode"
+                                value="manual"
+                                id="approval_mode_manual"
+                                onchange="updateApprovalMode('manual')"
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                {% if guild and guild.settings and guild.settings.get('onboarding_approval_mode') == 'manual' %}checked{% endif %}
+                            >
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Manual Approval - Requires approval from authorized roles</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Preview Onboarding Form -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Onboarding Form Preview</h2>
+    <!-- Manual Approval Configuration (only shown when manual mode is selected) -->
+    <div id="manualApprovalConfig" class="bg-white dark:bg-gray-800 shadow rounded-lg p-6" style="display: {% if guild and guild.settings and guild.settings.get('onboarding_approval_mode') == 'manual' %}block{% else %}none{% endif %};">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Manual Approval Settings</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            This is how the onboarding modal appears to users
+            Configure the channel and roles for manual approval
         </p>
 
-        <!-- Discord-style modal preview -->
-        <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 max-w-md mx-auto">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Onboarding</h3>
+        <div class="space-y-4">
+            <!-- Approval Channel -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Approval Requests Channel</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Select the channel where onboarding approval requests will be sent
+                </p>
 
-            <div id="formPreview" class="space-y-4">
-                <!-- Will be populated dynamically -->
+                {% if approval_channel %}
+                <div class="flex items-center mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ approval_channel.name }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(ID: {{ approval_channel.channel_id }})</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Loading State -->
+                <div id="approvalChannelLoadingState" class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Loading channels from Discord...</p>
+                </div>
+
+                <!-- Channel Selection -->
+                <div id="approvalChannelSelectionState" class="hidden">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <select
+                                id="approvalChannelSelect"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">-- Select a channel --</option>
+                            </select>
+                        </div>
+                        <button
+                            onclick="saveApprovalChannel()"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error/Manual State -->
+                <div id="approvalChannelErrorState" class="hidden">
+                    <div class="p-3 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-3">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200" id="approvalChannelErrorMessage"></p>
+                        <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Make sure the bot is running and connected to Discord, then refresh the page.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <input
+                                type="number"
+                                id="approvalChannelIdInput"
+                                placeholder="Enter Channel ID (e.g. 1234567890123456789)"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <button
+                            onclick="saveApprovalChannelManual()"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Right-click a channel in Discord and select "Copy Channel ID"
+                    </p>
+                </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400" disabled>
-                    Cancel
-                </button>
-                <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" disabled>
-                    Submit
-                </button>
+            <!-- Approver Roles -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Authorized Approver Roles</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Select which roles can approve onboarding requests
+                </p>
+
+                <!-- Current Approver Roles -->
+                <div class="mb-3" id="currentApproverRoles">
+                    {% if approver_roles and approver_roles|length > 0 %}
+                    <div class="space-y-2">
+                        {% for role in approver_roles %}
+                        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                            <span class="text-sm text-gray-900 dark:text-white">@{{ role.role_name }}</span>
+                            <button
+                                onclick="removeApproverRole({{ role.role_id }})"
+                                class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                            >
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="flex items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                        <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm text-yellow-800 dark:text-yellow-200">No approver roles configured</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Loading State -->
+                <div id="approverRoleLoadingState" class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Loading roles from Discord...</p>
+                </div>
+
+                <!-- Role Selection -->
+                <div id="approverRoleSelectionState" class="hidden">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <select
+                                id="approverRoleSelect"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">-- Select a role --</option>
+                            </select>
+                        </div>
+                        <button
+                            onclick="addApproverRoleFromDropdown()"
+                            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 whitespace-nowrap"
+                        >
+                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                            </svg>
+                            Add Role
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error/Manual State -->
+                <div id="approverRoleErrorState" class="hidden">
+                    <div class="p-3 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-3">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200" id="approverRoleErrorMessage"></p>
+                        <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Make sure the bot is running and connected to Discord, then refresh the page.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <input
+                                type="number"
+                                id="approverRoleIdInput"
+                                placeholder="Enter Role ID (e.g. 1234567890123456789)"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <button
+                            onclick="addApproverRoleManual()"
+                            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 whitespace-nowrap"
+                        >
+                            Add Role
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Right-click a role in Discord and select "Copy Role ID"
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -500,8 +687,7 @@ function loadFields() {
     // Update add button state
     document.getElementById('addFieldBtn').disabled = fields.length >= 5;
 
-    // Update form preview and available fields
-    updateFormPreview();
+    // Update available fields
     updateAvailableFields();
 }
 
@@ -741,33 +927,6 @@ async function saveNicknameTemplate() {
     }
 }
 
-// Form preview
-function updateFormPreview() {
-    const container = document.getElementById('formPreview');
-    container.innerHTML = '';
-
-    if (fields.length === 0) {
-        container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center">No fields configured</p>';
-        return;
-    }
-
-    fields.forEach(field => {
-        const fieldDiv = document.createElement('div');
-        fieldDiv.innerHTML = `
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                ${field.label}${field.required ? '' : ' (optional)'}
-            </label>
-            <input
-                type="text"
-                placeholder="${field.placeholder}"
-                disabled
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-        `;
-        container.appendChild(fieldDiv);
-    });
-}
-
 // Role configuration
 function configureRole() {
     document.getElementById('roleModal').classList.remove('hidden');
@@ -842,6 +1001,305 @@ async function updateSetting(key, value) {
     }
 }
 
+// Approval mode functions
+async function updateApprovalMode(mode) {
+    try {
+        const response = await fetch('/api/config/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: 'onboarding_approval_mode',
+                value: mode
+            })
+        });
+
+        if (response.ok) {
+            console.log(`Approval mode updated to ${mode}`);
+            // Show/hide manual approval config section
+            const manualConfig = document.getElementById('manualApprovalConfig');
+            if (mode === 'manual') {
+                manualConfig.style.display = 'block';
+                // Load channels and roles when switching to manual mode
+                loadApprovalChannels();
+                loadApproverRoles();
+            } else {
+                manualConfig.style.display = 'none';
+            }
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to update approval mode'}`);
+            // Revert radio selection
+            document.getElementById(`approval_mode_${mode === 'auto' ? 'manual' : 'auto'}`).checked = true;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating approval mode');
+        // Revert radio selection
+        document.getElementById(`approval_mode_${mode === 'auto' ? 'manual' : 'auto'}`).checked = true;
+    }
+}
+
+// Approval channel functions
+async function loadApprovalChannels() {
+    try {
+        const response = await fetch('/api/discord/channels');
+        const data = await response.json();
+
+        if (data.error || !data.channels || data.channels.length === 0) {
+            // Show error and fall back to manual input
+            document.getElementById('approvalChannelLoadingState').classList.add('hidden');
+            document.getElementById('approvalChannelErrorState').classList.remove('hidden');
+            document.getElementById('approvalChannelErrorMessage').textContent = data.error || 'No channels found';
+        } else {
+            // Populate dropdown with channels
+            const select = document.getElementById('approvalChannelSelect');
+            select.innerHTML = '<option value="">-- Select a channel --</option>';
+
+            let currentCategory = null;
+            for (const channel of data.channels) {
+                // Add category label if it changed
+                if (channel.category !== currentCategory) {
+                    if (channel.category) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = channel.category;
+                        select.appendChild(optgroup);
+
+                        const option = document.createElement('option');
+                        option.value = JSON.stringify(channel);
+                        option.textContent = '# ' + channel.name;
+                        optgroup.appendChild(option);
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = JSON.stringify(channel);
+                        option.textContent = '# ' + channel.name;
+                        select.appendChild(option);
+                    }
+                    currentCategory = channel.category;
+                } else {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(channel);
+                    option.textContent = '# ' + channel.name;
+                    select.appendChild(option);
+                }
+            }
+
+            document.getElementById('approvalChannelLoadingState').classList.add('hidden');
+            document.getElementById('approvalChannelSelectionState').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading channels:', error);
+        document.getElementById('approvalChannelLoadingState').classList.add('hidden');
+        document.getElementById('approvalChannelErrorState').classList.remove('hidden');
+        document.getElementById('approvalChannelErrorMessage').textContent = 'Error loading channels: ' + error.message;
+    }
+}
+
+async function saveApprovalChannel() {
+    const select = document.getElementById('approvalChannelSelect');
+    const selectedValue = select.value;
+
+    if (!selectedValue) {
+        alert('Please select a channel');
+        return;
+    }
+
+    try {
+        const channel = JSON.parse(selectedValue);
+        const response = await fetch('/api/config/channel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                channel_id: parseInt(channel.id),
+                channel_type: 'onboarding_approval',
+                name: channel.name
+            })
+        });
+
+        if (response.ok) {
+            alert('Approval channel configured successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to configure channel'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error configuring approval channel');
+    }
+}
+
+async function saveApprovalChannelManual() {
+    const channelId = document.getElementById('approvalChannelIdInput').value;
+
+    if (!channelId) {
+        alert('Please enter a channel ID');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/channel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                channel_id: parseInt(channelId),
+                channel_type: 'onboarding_approval',
+                name: 'Unknown Channel'
+            })
+        });
+
+        if (response.ok) {
+            alert('Approval channel configured successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to configure channel'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error configuring approval channel');
+    }
+}
+
+// Approver role functions
+async function loadApproverRoles() {
+    try {
+        const response = await fetch('/api/discord/roles');
+        const data = await response.json();
+
+        if (data.error || !data.roles || data.roles.length === 0) {
+            // Show error and fall back to manual input
+            document.getElementById('approverRoleLoadingState').classList.add('hidden');
+            document.getElementById('approverRoleErrorState').classList.remove('hidden');
+            document.getElementById('approverRoleErrorMessage').textContent = data.error || 'No roles found';
+        } else {
+            // Populate dropdown with roles
+            const select = document.getElementById('approverRoleSelect');
+            select.innerHTML = '<option value="">-- Select a role --</option>';
+
+            for (const role of data.roles) {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(role);
+                option.textContent = '@' + role.name;
+                select.appendChild(option);
+            }
+
+            document.getElementById('approverRoleLoadingState').classList.add('hidden');
+            document.getElementById('approverRoleSelectionState').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading roles:', error);
+        document.getElementById('approverRoleLoadingState').classList.add('hidden');
+        document.getElementById('approverRoleErrorState').classList.remove('hidden');
+        document.getElementById('approverRoleErrorMessage').textContent = 'Error loading roles: ' + error.message;
+    }
+}
+
+async function addApproverRoleFromDropdown() {
+    const select = document.getElementById('approverRoleSelect');
+    const selectedValue = select.value;
+
+    if (!selectedValue) {
+        alert('Please select a role');
+        return;
+    }
+
+    try {
+        const role = JSON.parse(selectedValue);
+        const response = await fetch('/api/config/role', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role_id: role.id,  // Send as string, Python will convert to int
+                role_type: 'onboarding_approver',
+                role_name: role.name
+            })
+        });
+
+        if (response.ok) {
+            alert('Approver role added successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to add approver role'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding approver role');
+    }
+}
+
+async function addApproverRoleManual() {
+    const roleId = document.getElementById('approverRoleIdInput').value;
+
+    if (!roleId) {
+        alert('Please enter a role ID');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/role', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role_id: roleId,  // Send as string, Python will convert to int
+                role_type: 'onboarding_approver',
+                role_name: 'Unknown Role'
+            })
+        });
+
+        if (response.ok) {
+            alert('Approver role added successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to add approver role'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding approver role');
+    }
+}
+
+async function removeApproverRole(roleId) {
+    if (!confirm('Are you sure you want to remove this approver role?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/role/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role_id: roleId,
+                role_type: 'onboarding_approver'
+            })
+        });
+
+        if (response.ok) {
+            alert('Approver role removed successfully!');
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to remove approver role'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing approver role');
+    }
+}
+
 // Close modals when clicking outside
 document.getElementById('roleModal').addEventListener('click', function(e) {
     if (e.target === this) {
@@ -852,6 +1310,16 @@ document.getElementById('roleModal').addEventListener('click', function(e) {
 document.getElementById('fieldModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeFieldModal();
+    }
+});
+
+// Load channels and roles on page load if manual approval mode is enabled
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if manual approval config is visible (indicating manual mode is active)
+    const manualConfig = document.getElementById('manualApprovalConfig');
+    if (manualConfig && manualConfig.style.display !== 'none' && !manualConfig.classList.contains('hidden')) {
+        loadApprovalChannels();
+        loadApproverRoles();
     }
 });
 </script>

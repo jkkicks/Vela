@@ -15,7 +15,7 @@
     <!-- Apps Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Welcome System App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if apps and apps.get('welcome_system', {}).get('enabled', True) %}border-blue-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('welcome_enabled') %}border-blue-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -35,7 +35,7 @@
                             class="sr-only peer"
                             id="welcome_system_enabled"
                             onchange="toggleApp('welcome_system', this.checked)"
-                            {% if apps and apps.get('welcome_system', {}).get('enabled', True) %}checked{% endif %}
+                            {% if guild and guild.settings and guild.settings.get('welcome_enabled') %}checked{% endif %}
                         >
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                     </label>
@@ -80,7 +80,7 @@
         </div>
 
         <!-- Onboarding Module App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if apps and apps.get('onboarding', {}).get('enabled', True) %}border-green-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('onboarding_enabled') %}border-green-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -100,7 +100,7 @@
                             class="sr-only peer"
                             id="onboarding_enabled"
                             onchange="toggleApp('onboarding', this.checked)"
-                            {% if apps and apps.get('onboarding', {}).get('enabled', True) %}checked{% endif %}
+                            {% if guild and guild.settings and guild.settings.get('onboarding_enabled') %}checked{% endif %}
                         >
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
                     </label>
@@ -145,7 +145,7 @@
         </div>
 
         <!-- Member Management App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if apps and apps.get('member_management', {}).get('enabled', True) %}border-purple-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('member_management_enabled') %}border-purple-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -165,7 +165,7 @@
                             class="sr-only peer"
                             id="member_management_enabled"
                             onchange="toggleApp('member_management', this.checked)"
-                            {% if apps and apps.get('member_management', {}).get('enabled', True) %}checked{% endif %}
+                            {% if guild and guild.settings and guild.settings.get('member_management_enabled') %}checked{% endif %}
                         >
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                     </label>
@@ -209,51 +209,66 @@
             </div>
         </div>
 
-        <!-- Auto-moderation App (Coming Soon) -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 opacity-75">
+        <!-- Member Support App -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('member_support_enabled') %}border-orange-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
-                        <div class="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mr-4">
-                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Auto-moderation</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Automated moderation tools</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Member Support</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Help and support resources for members</p>
                         </div>
                     </div>
-                    <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">Coming Soon</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="sr-only peer"
+                            id="member_support_enabled"
+                            onchange="toggleApp('member_support', this.checked)"
+                            {% if guild and guild.settings and guild.settings.get('member_support_enabled') %}checked{% endif %}
+                        >
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                    </label>
                 </div>
 
                 <div class="space-y-3">
                     <div class="flex items-center text-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 mr-2 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
-                        <span class="text-gray-500 dark:text-gray-500">Spam detection</span>
+                        <span class="text-gray-700 dark:text-gray-300">Customizable help button</span>
                     </div>
                     <div class="flex items-center text-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 mr-2 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
-                        <span class="text-gray-500 dark:text-gray-500">Bad word filtering</span>
+                        <span class="text-gray-700 dark:text-gray-300">Support messages</span>
                     </div>
                     <div class="flex items-center text-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 mr-2 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
-                        <span class="text-gray-500 dark:text-gray-500">Auto-ban/kick</span>
+                        <span class="text-gray-700 dark:text-gray-300">Member assistance</span>
                     </div>
                 </div>
 
-                <div class="mt-6">
+                <div class="mt-6 flex gap-3">
                     <button
-                        disabled
-                        class="w-full px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 text-sm rounded-md cursor-not-allowed"
+                        onclick="window.location.href='/admin/apps/support'"
+                        class="flex-1 px-4 py-2 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
-                        Coming Soon
+                        Configure
+                    </button>
+                    <button
+                        onclick="viewAppInfo('member_support')"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                        Info
                     </button>
                 </div>
             </div>
@@ -291,6 +306,10 @@ const appInfo = {
     'member_management': {
         title: 'Member Management',
         description: 'Member Management provides a web-based interface to view and manage all members in your server. You can search members, edit their information, view onboarding status, and manage roles through an easy-to-use dashboard.'
+    },
+    'member_support': {
+        title: 'Member Support',
+        description: 'Member Support provides help and assistance resources for your server members. Configure support buttons, help messages, and contact options to make it easy for members to get the help they need.'
     }
 };
 
@@ -319,9 +338,11 @@ async function toggleApp(appName, enabled) {
                     card.classList.add('border-green-500');
                 } else if (appName === 'member_management') {
                     card.classList.add('border-purple-500');
+                } else if (appName === 'member_support') {
+                    card.classList.add('border-orange-500');
                 }
             } else {
-                card.classList.remove('border-blue-500', 'border-green-500', 'border-purple-500');
+                card.classList.remove('border-blue-500', 'border-green-500', 'border-purple-500', 'border-orange-500');
                 card.classList.add('border-gray-200', 'dark:border-gray-700');
             }
         } else {

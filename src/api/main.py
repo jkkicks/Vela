@@ -32,18 +32,64 @@ async def lifespan(app: FastAPI):
     import sys
 
     # Validate critical security settings before startup
+    missing_configs = []
+
     if (
         not settings.api_secret_key
         or settings.api_secret_key == "change-this-secret-key-in-production"
     ):
-        logger.error(
-            "SECURITY ERROR: api_secret_key is not set or using default value!"
-        )
-        logger.error("Please set a secure api_secret_key in your .env file")
-        logger.error("Application startup blocked for security reasons")
+        missing_configs.append("API_SECRET_KEY")
+
+    if missing_configs:
+        print("\n" + "=" * 80)
+        print("STARTUP FAILED - MISSING REQUIRED CONFIGURATION")
+        print("=" * 80)
+        print("\nThe following required environment variables are not set:\n")
+        for config in missing_configs:
+            print(f"  [!] {config}")
+        print("\n" + "-" * 80)
+        print("How to fix:")
+        print("-" * 80)
+        print("\n1. Create a .env file in your project root with:")
+        print("\n   API_SECRET_KEY=your-secure-random-secret-key-here")
+        print("\n2. Or set environment variables when running Docker:")
+        print("\n   docker run -e API_SECRET_KEY=your-secret-key ...")
+        print("\n3. Generate a secure secret key:")
+        print("\n   # Linux/Mac:")
+        print("   openssl rand -base64 32")
+        print("\n   # Python:")
+        print("   python -c 'import secrets; print(secrets.token_urlsafe(32))'")
+        print("\n" + "=" * 80)
+        print("WARNING: Never use default values in production!")
+        print("=" * 80 + "\n")
+
+        logger.error("Application startup blocked due to missing configuration")
         sys.exit(1)
 
     # Startup
+    print("\n" + "=" * 80)
+    print("CONFIGURATION VALIDATED")
+    print("=" * 80)
+    print("\nLoaded Configuration:")
+    print(f"  * API Host: {settings.api_host}:{settings.api_port}")
+    print(f"  * Database: {settings.database_url}")
+    print(
+        f"  * API Secret Key: {'[OK]' if settings.api_secret_key and settings.api_secret_key != 'change-this-secret-key-in-production' else '[MISSING]'}"
+    )
+    print(f"  * Encryption Key: {'[OK]' if settings.encryption_key else '[MISSING]'}")
+    print(
+        f"  * Discord Client ID: {'[OK]' if settings.discord_client_id else '[MISSING] (required for OAuth)'}"
+    )
+    print(
+        f"  * Discord Client Secret: {'[OK]' if settings.discord_client_secret else '[MISSING] (required for OAuth)'}"
+    )
+    print(
+        f"  * Bot Token: {'[OK]' if settings.bot_token else '[MISSING] (required for bot)'}"
+    )
+    print(f"  * Debug Mode: {'Enabled' if settings.debug else 'Disabled'}")
+    print(f"  * Log Level: {settings.log_level}")
+    print("\n" + "=" * 80 + "\n")
+
     logger.info("Starting FastAPI application")
     init_database()
 
