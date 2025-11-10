@@ -251,8 +251,52 @@ def create_onboarding_modal(guild_id: int):
 class OnboardingView(discord.ui.View):
     """Persistent view with onboarding buttons"""
 
-    def __init__(self):
+    def __init__(self, guild_id: int = None):
         super().__init__(timeout=None)  # Persistent view
+        self.guild_id = guild_id
+
+        # Load help button configuration from guild settings
+        self.help_config = self._load_help_config()
+
+        # Only add the help button if it's enabled
+        if self.help_config.get("enabled", True):
+            help_button = discord.ui.Button(
+                label=self.help_config.get("button_text", "Need Help?"),
+                style=discord.ButtonStyle.secondary,
+                custom_id="vela:help",
+                emoji="🤝",
+            )
+            help_button.callback = self.help_button_callback
+            self.add_item(help_button)
+
+    def _load_help_config(self):
+        """Load help button configuration from database"""
+        if not self.guild_id:
+            return {"enabled": True}
+
+        try:
+            with next(get_session()) as session:
+                guild = session.exec(
+                    select(Guild).where(Guild.guild_id == self.guild_id)
+                ).first()
+
+                if guild and guild.settings:
+                    return guild.settings.get(
+                        "help_button_config",
+                        {
+                            "enabled": True,
+                            "button_text": "Need Help?",
+                            "message_content": "We're here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin.",
+                        },
+                    )
+        except Exception as e:
+            logger.error(f"Error loading help button config: {e}")
+
+        return {
+            "enabled": True,
+            "button_text": "Need Help?",
+            "message_content": "We're here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin.",
+        }
 
     @discord.ui.button(
         label="Complete Onboarding",
@@ -358,41 +402,14 @@ class OnboardingView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="Need Help?",
-        style=discord.ButtonStyle.secondary,
-        custom_id="vela:help",
-        emoji="🤝",
-    )
-    async def help_button(self, interaction: Interaction, button: discord.ui.Button):
+    async def help_button_callback(self, interaction: Interaction):
         """Handle help button click"""
-        embed = discord.Embed(
-            title="Need Help?",
-            description="We're here to assist you!",
-            color=discord.Color.gold(),
+        # Reload config in case it changed
+        help_config = self._load_help_config()
+
+        message_content = help_config.get(
+            "message_content",
+            "We're here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin.",
         )
 
-        embed.add_field(
-            name="Common Issues",
-            value=(
-                "**Can't complete onboarding?**\n"
-                "Make sure you fill in both your first and last name.\n\n"
-                "**Already onboarded?**\n"
-                "Use `/setnick` to change your nickname.\n\n"
-                "**Technical issues?**\n"
-                "Contact a moderator for assistance."
-            ),
-            inline=False,
-        )
-
-        embed.add_field(
-            name="Contact Support",
-            value=(
-                "• Ping an @Admin or @Moderator\n"
-                "• Use the support ticket system (if available)\n"
-                "• Send a DM to a staff member"
-            ),
-            inline=False,
-        )
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(message_content, ephemeral=True)

@@ -333,12 +333,18 @@ async def configure_channel(
 ):
     """Configure a channel for the guild"""
     data = await request.json()
-    channel_id = data.get("channel_id")
+    channel_id_raw = data.get("channel_id")
     channel_type = data.get("channel_type")
     name = data.get("name")
 
-    if not channel_id or not channel_type:
+    if not channel_id_raw or not channel_type:
         raise HTTPException(400, "channel_id and channel_type are required")
+
+    # Convert channel_id to int, handling both string and int input
+    try:
+        channel_id = int(channel_id_raw)
+    except (ValueError, TypeError):
+        raise HTTPException(400, "channel_id must be a valid integer")
 
     # Check if channel already exists
     existing_channel = session.exec(
@@ -480,6 +486,248 @@ async def update_setting(
     logger.info(f"Setting {key} updated to {value} by {current_user['username']}")
 
     return {"message": "Setting updated successfully"}
+
+
+@router.post("/config/welcome-message")
+async def update_welcome_message(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Update welcome message configuration"""
+    data = await request.json()
+    message_type = data.get("type", "embed")
+
+    if message_type not in ["embed", "plain"]:
+        raise HTTPException(400, "type must be 'embed' or 'plain'")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Update settings
+    if guild.settings is None:
+        guild.settings = {}
+
+    # Build welcome message configuration
+    welcome_config = {"type": message_type}
+
+    if message_type == "plain":
+        welcome_config["content"] = data.get("content", "")
+    else:
+        # Embed configuration
+        embed_config = {
+            "title": data.get("title", "Welcome to the Server!"),
+            "description": data.get("description", ""),
+            "color": data.get("color", "green"),
+            "footer": data.get("footer", ""),
+        }
+
+        # Add fields if provided
+        fields = data.get("fields", [])
+        if fields:
+            embed_config["fields"] = fields
+
+        welcome_config["embed"] = embed_config
+
+    guild.settings["welcome_message_config"] = welcome_config
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="welcome_message_updated",
+        details={"type": message_type},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"Welcome message configuration updated by {current_user['username']}")
+
+    return {"message": "Welcome message configuration updated successfully"}
+
+
+@router.get("/discord/channels")
+async def get_discord_channels(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Get all text channels from Discord for the guild"""
+    try:
+        # Get bot instance from app state
+        bot = getattr(request.app.state, "bot", None)
+
+        if not bot or not bot.is_ready():
+            return {"channels": [], "error": "Bot is not connected to Discord"}
+
+        # Get the Discord guild
+        discord_guild = bot.get_guild(current_user["guild_id"])
+
+        if not discord_guild:
+            return {"channels": [], "error": "Guild not found in Discord"}
+
+        # Get all text channels
+        channels = []
+        for channel in discord_guild.text_channels:
+            channels.append(
+                {
+                    "id": str(channel.id),
+                    "name": channel.name,
+                    "category": channel.category.name if channel.category else None,
+                }
+            )
+
+        # Sort by category and name
+        channels.sort(key=lambda x: (x["category"] or "", x["name"]))
+
+        return {"channels": channels, "error": None}
+
+    except Exception as e:
+        logger.error(f"Error fetching Discord channels: {e}")
+        return {"channels": [], "error": str(e)}
+
+
+@router.post("/welcome/update-message")
+async def update_welcome_message_endpoint(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Update the existing welcome message with new content"""
+    try:
+        # Get bot instance
+        bot = getattr(request.app.state, "bot", None)
+        if not bot or not bot.is_ready():
+            raise HTTPException(503, "Bot is not connected to Discord")
+
+        # Get welcome channel
+        welcome_channel = session.exec(
+            select(Channel).where(
+                Channel.guild_id == current_user["guild_id"],
+                Channel.channel_type == "welcome",
+            )
+        ).first()
+
+        if not welcome_channel:
+            raise HTTPException(404, "Welcome channel not configured")
+
+        if not welcome_channel.message_id:
+            raise HTTPException(
+                404,
+                "No welcome message exists yet. Use 'Send/Replace Message' instead.",
+            )
+
+        # Update the message
+        success, message = await bot.update_welcome_message(
+            current_user["guild_id"],
+            welcome_channel.channel_id,
+            welcome_channel.message_id,
+        )
+
+        if not success:
+            raise HTTPException(500, f"Failed to update message: {message}")
+
+        # Log the action
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=current_user["discord_id"],
+            discord_username=current_user["username"],
+            action="welcome_message_updated",
+            details={"message_id": welcome_channel.message_id},
+        )
+        session.add(audit_log)
+        session.commit()
+
+        logger.info(f"Welcome message updated by {current_user['username']}")
+        return {"message": "Welcome message updated successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating welcome message: {e}")
+        raise HTTPException(500, f"Error updating welcome message: {str(e)}")
+
+
+@router.post("/welcome/replace-message")
+async def replace_welcome_message_endpoint(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Delete the old welcome message and create a new one (or create if none exists)"""
+    try:
+        # Get bot instance
+        bot = getattr(request.app.state, "bot", None)
+        if not bot or not bot.is_ready():
+            raise HTTPException(503, "Bot is not connected to Discord")
+
+        # Get welcome channel
+        welcome_channel = session.exec(
+            select(Channel).where(
+                Channel.guild_id == current_user["guild_id"],
+                Channel.channel_type == "welcome",
+            )
+        ).first()
+
+        if not welcome_channel:
+            raise HTTPException(404, "Welcome channel not configured")
+
+        logger.info(
+            f"Replacing welcome message for guild {current_user['guild_id']}, "
+            f"channel {welcome_channel.channel_id}, message {welcome_channel.message_id}"
+        )
+
+        # Replace/create the message
+        success, message, new_message_id = await bot.replace_welcome_message(
+            current_user["guild_id"],
+            welcome_channel.channel_id,
+            welcome_channel.message_id,
+        )
+
+        logger.info(
+            f"Replace result: success={success}, message={message}, new_id={new_message_id}"
+        )
+
+        if not success:
+            raise HTTPException(500, f"Failed to replace message: {message}")
+
+        # Update the message ID in database
+        welcome_channel.message_id = new_message_id
+        session.add(welcome_channel)
+
+        # Log the action
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=current_user["discord_id"],
+            discord_username=current_user["username"],
+            action="welcome_message_replaced",
+            details={"new_message_id": new_message_id},
+        )
+        session.add(audit_log)
+        session.commit()
+
+        logger.info(f"Welcome message replaced by {current_user['username']}")
+        return {
+            "message": "Welcome message created/replaced successfully",
+            "message_id": new_message_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error replacing welcome message: {e}")
+        raise HTTPException(500, f"Error replacing welcome message: {str(e)}")
 
 
 @router.post("/config/reset")

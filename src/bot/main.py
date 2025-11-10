@@ -7,7 +7,7 @@ import asyncio
 from typing import Optional
 from src.shared.config import settings, decrypt_value
 from src.shared.database import init_database, get_session
-from src.shared.models import Guild, Member, Channel
+from src.shared.models import Guild, Member
 from sqlmodel import select
 
 # Setup logging
@@ -79,86 +79,231 @@ class VelaBot(commands.Bot):
         except Exception as e:
             logger.error(f"Failed to sync commands: {e}")
 
-        # Setup welcome messages for all guilds
-        for guild in self.guilds:
-            await self.setup_guild(guild)
-
         print("Bot is ready!")
 
-    async def setup_guild(self, guild: discord.Guild):
-        """Setup a guild with welcome message and configurations"""
+    def _get_welcome_message_content(self, welcome_config: dict):
+        """Build welcome message content from configuration"""
+        from src.bot.views.onboarding import OnboardingView
+
+        message_type = welcome_config.get("type", "embed")
+
+        # Default configuration
+        default_config = {
+            "title": "Welcome to the Server!",
+            "description": "Here's how to get started:",
+            "color": "green",
+            "fields": [
+                {
+                    "name": "Step 1:",
+                    "value": "Read the server rules in the rules channel.",
+                    "inline": False,
+                },
+                {
+                    "name": "Step 2:",
+                    "value": "Check out some cool posts in the projects channel.",
+                    "inline": False,
+                },
+                {
+                    "name": "Step 3:",
+                    "value": "Complete the Onboarding procedure to unlock the rest of the server.",
+                    "inline": False,
+                },
+            ],
+            "footer": "Enjoy your stay!",
+        }
+
+        view = OnboardingView()
+
+        if message_type == "plain":
+            # Plain text message
+            content = welcome_config.get(
+                "content",
+                "Welcome to the Server!\n\nHere's how to get started:\n\nStep 1: Read the server rules in the rules channel.\nStep 2: Check out some cool posts in the projects channel.\nStep 3: Complete the Onboarding procedure to unlock the rest of the server.\n\nEnjoy your stay!",
+            )
+            return {"content": content, "embed": None, "view": view}
+        else:
+            # Embed message
+            embed_config = welcome_config.get("embed", default_config)
+
+            # Parse color
+            color_value = embed_config.get("color", "green")
+            if isinstance(color_value, str):
+                color_map = {
+                    "red": discord.Color.red(),
+                    "green": discord.Color.green(),
+                    "blue": discord.Color.blue(),
+                    "yellow": discord.Color.gold(),
+                    "purple": discord.Color.purple(),
+                    "orange": discord.Color.orange(),
+                }
+                color = color_map.get(color_value.lower(), discord.Color.green())
+            else:
+                color = discord.Color(color_value)
+
+            embed = discord.Embed(
+                title=embed_config.get("title", default_config["title"]),
+                description=embed_config.get(
+                    "description", default_config["description"]
+                ),
+                color=color,
+            )
+
+            # Add fields
+            fields = embed_config.get("fields", default_config["fields"])
+            for field in fields:
+                embed.add_field(
+                    name=field.get("name", ""),
+                    value=field.get("value", ""),
+                    inline=field.get("inline", False),
+                )
+
+            # Add footer
+            footer = embed_config.get("footer", default_config["footer"])
+            if footer:
+                embed.set_footer(text=footer)
+
+            return {"content": None, "embed": embed, "view": view}
+
+    async def create_welcome_message(
+        self, guild_id: int, channel_id: int
+    ) -> tuple[bool, str, Optional[int]]:
+        """Create a new welcome message in the channel"""
         try:
+            guild = self.get_guild(guild_id)
+            if not guild:
+                return False, "Guild not found", None
+
+            channel = guild.get_channel(channel_id)
+            if not channel:
+                return False, "Channel not found", None
+
             # Get guild configuration from database
             with next(get_session()) as session:
                 db_guild = session.exec(
-                    select(Guild).where(Guild.guild_id == guild.id)
+                    select(Guild).where(Guild.guild_id == guild_id)
                 ).first()
 
                 if not db_guild:
-                    logger.warning(f"Guild {guild.id} not found in database")
-                    return
+                    return False, "Guild not found in database", None
 
-                # Get welcome channel configuration
-                welcome_channel = session.exec(
-                    select(Channel).where(
-                        Channel.guild_id == guild.id,
-                        Channel.channel_type == "welcome",
-                        Channel.enabled,
-                    )
+                # Get welcome message configuration
+                welcome_config = db_guild.settings.get("welcome_message_config", {})
+
+            # Build message content
+            msg_data = self._get_welcome_message_content(welcome_config)
+
+            # Send message
+            if msg_data["embed"]:
+                message = await channel.send(
+                    embed=msg_data["embed"], view=msg_data["view"]
+                )
+            else:
+                message = await channel.send(
+                    content=msg_data["content"], view=msg_data["view"]
+                )
+
+            logger.info(f"Created welcome message in {guild.name} (ID: {message.id})")
+            return True, "Welcome message created successfully", message.id
+
+        except Exception as e:
+            logger.error(f"Error creating welcome message: {e}")
+            return False, str(e), None
+
+    async def update_welcome_message(
+        self, guild_id: int, channel_id: int, message_id: int
+    ) -> tuple[bool, str]:
+        """Update an existing welcome message"""
+        try:
+            guild = self.get_guild(guild_id)
+            if not guild:
+                return False, "Guild not found"
+
+            channel = guild.get_channel(channel_id)
+            if not channel:
+                return False, "Channel not found"
+
+            # Get the message
+            try:
+                message = await channel.fetch_message(message_id)
+            except discord.NotFound:
+                return False, "Welcome message not found - it may have been deleted"
+            except discord.Forbidden:
+                return False, "Bot doesn't have permission to access this message"
+
+            # Get guild configuration
+            with next(get_session()) as session:
+                db_guild = session.exec(
+                    select(Guild).where(Guild.guild_id == guild_id)
                 ).first()
 
-                if welcome_channel:
-                    await self.setup_welcome_message(guild, welcome_channel.channel_id)
+                if not db_guild:
+                    return False, "Guild not found in database"
+
+                welcome_config = db_guild.settings.get("welcome_message_config", {})
+
+            # Build message content
+            msg_data = self._get_welcome_message_content(welcome_config)
+
+            # Update message
+            if msg_data["embed"]:
+                await message.edit(
+                    content=None, embed=msg_data["embed"], view=msg_data["view"]
+                )
+            else:
+                await message.edit(
+                    content=msg_data["content"], embed=None, view=msg_data["view"]
+                )
+
+            logger.info(f"Updated welcome message in {guild.name} (ID: {message_id})")
+            return True, "Welcome message updated successfully"
 
         except Exception as e:
-            logger.error(f"Error setting up guild {guild.id}: {e}")
+            logger.error(f"Error updating welcome message: {e}")
+            return False, str(e)
 
-    async def setup_welcome_message(self, guild: discord.Guild, channel_id: int):
-        """Setup or verify welcome message in the specified channel"""
-        channel = guild.get_channel(channel_id)
-        if not channel:
-            logger.warning(
-                f"Welcome channel {channel_id} not found in guild {guild.id}"
-            )
-            return
-
-        # Check if welcome message already exists
+    async def replace_welcome_message(
+        self, guild_id: int, channel_id: int, old_message_id: Optional[int]
+    ) -> tuple[bool, str, Optional[int]]:
+        """Delete the old message and create a new one"""
         try:
-            async for message in channel.history(limit=100):
-                if message.author == self.user and message.embeds:
-                    # Check if it's a welcome message
-                    if message.embeds[0].title and "Welcome" in message.embeds[0].title:
-                        logger.info(
-                            f"Welcome message found in {guild.name}. Message ID: {message.id}"
-                        )
-                        return
+            guild = self.get_guild(guild_id)
+            if not guild:
+                return False, "Guild not found", None
 
-            # Create welcome message if not found
-            from src.bot.views.onboarding import OnboardingView
+            channel = guild.get_channel(channel_id)
+            if not channel:
+                return False, "Channel not found", None
 
-            embed = discord.Embed(
-                title="Welcome to the Server!",
-                description="Here's how to get started:",
-                color=discord.Color.green(),
-            )
-            embed.add_field(
-                name="Step 1:", value="Read the server rules in the rules channel."
-            )
-            embed.add_field(
-                name="Step 2:",
-                value="Check out some cool posts in the projects channel.",
-            )
-            embed.add_field(
-                name="Step 3:",
-                value="Complete the Onboarding procedure to unlock the rest of the server.",
-            )
-            embed.set_footer(text="Enjoy your stay!")
+            # Delete old message if it exists
+            if old_message_id:
+                try:
+                    old_message = await channel.fetch_message(old_message_id)
+                    await old_message.delete()
+                    logger.info(f"Deleted old welcome message (ID: {old_message_id})")
+                except discord.NotFound:
+                    logger.warning(
+                        f"Old welcome message not found (ID: {old_message_id})"
+                    )
+                except discord.Forbidden:
+                    return (
+                        False,
+                        "Bot doesn't have permission to delete the old message",
+                        None,
+                    )
 
-            await channel.send(embed=embed, view=OnboardingView())
-            logger.info(f"Created welcome message in {guild.name}")
+            # Create new message
+            success, message, new_message_id = await self.create_welcome_message(
+                guild_id, channel_id
+            )
+
+            if success:
+                return True, "Welcome message replaced successfully", new_message_id
+            else:
+                return False, f"Failed to create new message: {message}", None
 
         except Exception as e:
-            logger.error(f"Error setting up welcome message: {e}")
+            logger.error(f"Error replacing welcome message: {e}")
+            return False, str(e), None
 
     async def on_member_join(self, member: discord.Member):
         """Handle new member joining"""
@@ -185,9 +330,6 @@ class VelaBot(commands.Bot):
                     logger.info(f"Member {member.name} joined {member.guild.name}")
                 else:
                     logger.info(f"Member {member.name} rejoined {member.guild.name}")
-
-                # Ensure welcome message exists
-                await self.setup_guild(member.guild)
 
         except Exception as e:
             logger.error(f"Error handling member join: {e}")

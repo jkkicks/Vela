@@ -77,6 +77,7 @@ class Channel(SQLModel, table=True):
     guild_id: int = Field(foreign_key="guilds.guild_id")
     name: Optional[str] = None
     enabled: bool = True
+    message_id: Optional[int] = None  # For welcome channel: ID of the welcome message
 
     # Relationships
     guild: Optional[Guild] = Relationship(back_populates="channels")
