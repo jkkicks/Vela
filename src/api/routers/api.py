@@ -346,22 +346,38 @@ async def configure_channel(
     except (ValueError, TypeError):
         raise HTTPException(400, "channel_id must be a valid integer")
 
-    # Check if channel already exists
+    # With the new schema, we can have the same channel for multiple types
+    # We just need to check if this exact combination already exists
     existing_channel = session.exec(
         select(Channel).where(
             Channel.guild_id == current_user["guild_id"],
+            Channel.channel_id == channel_id,
             Channel.channel_type == channel_type,
         )
     ).first()
 
     if existing_channel:
-        # Update existing channel
-        existing_channel.channel_id = channel_id
+        # Update the existing channel configuration
+        logger.info(f"Updating existing channel config: {channel_type} -> {channel_id}")
         if name:
             existing_channel.name = name
         existing_channel.enabled = True
     else:
-        # Create new channel
+        # Check if we already have a different channel assigned to this type
+        # If so, delete it (since we're reassigning the type to a new channel)
+        old_channel_for_type = session.exec(
+            select(Channel).where(
+                Channel.guild_id == current_user["guild_id"],
+                Channel.channel_type == channel_type,
+            )
+        ).first()
+
+        if old_channel_for_type:
+            logger.info(f"Removing old channel assignment for {channel_type}")
+            session.delete(old_channel_for_type)
+
+        # Create new channel configuration
+        logger.info(f"Creating new channel config: {channel_type} -> {channel_id}")
         channel = Channel(
             channel_id=channel_id,
             channel_type=channel_type,

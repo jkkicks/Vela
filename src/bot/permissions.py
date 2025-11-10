@@ -21,12 +21,20 @@ def check_command_permissions(
     Returns:
         tuple[bool, Optional[str]]: (has_permission, error_message)
     """
+    logger.debug(
+        f"[PERMISSIONS] Checking permissions for user {user} (ID: {user.id}) in guild {guild_id}"
+    )
+
     # If user is not a Member (in DMs), deny
     if not isinstance(user, discord.Member):
+        logger.debug(
+            "[PERMISSIONS] User is not a guild member (likely in DMs) - denying"
+        )
         return False, "Commands can only be used in servers."
 
     # Server administrators always have permission
     if user.guild_permissions.administrator:
+        logger.debug(f"[PERMISSIONS] User {user} is administrator - allowing")
         return True, None
 
     try:
@@ -38,36 +46,63 @@ def check_command_permissions(
 
             if not guild:
                 # Guild not in database, allow by default
+                logger.warning(
+                    f"[PERMISSIONS] Guild {guild_id} not found in database - allowing by default"
+                )
                 return True, None
+
+            logger.debug(
+                f"[PERMISSIONS] Guild settings for {guild_id}: {guild.settings}"
+            )
 
             # Check if commands are globally enabled
             commands_enabled = guild.settings.get("slash_commands_enabled", True)
+            logger.info(
+                f"[PERMISSIONS] Commands enabled for guild {guild_id}: {commands_enabled} (type: {type(commands_enabled)})"
+            )
+
             if not commands_enabled:
+                logger.info(
+                    f"[PERMISSIONS] Commands disabled for user {user} - blocking command"
+                )
                 return False, "❌ Bot commands are currently disabled."
 
             # Get allowed roles
             allowed_roles = guild.settings.get("commands_allowed_roles", [])
+            logger.debug(
+                f"[PERMISSIONS] Allowed roles for guild {guild_id}: {allowed_roles}"
+            )
 
             # If no roles configured, allow all users
             if not allowed_roles or len(allowed_roles) == 0:
+                logger.debug(
+                    f"[PERMISSIONS] No role restrictions - allowing user {user}"
+                )
                 return True, None
 
             # Check if user has any of the allowed roles
             user_role_ids = [role.id for role in user.roles]
+            logger.debug(f"[PERMISSIONS] User {user} roles: {user_role_ids}")
             has_required_role = any(
                 role_id in user_role_ids for role_id in allowed_roles
             )
 
             if not has_required_role:
+                logger.info(
+                    f"[PERMISSIONS] User {user} lacks required roles - blocking"
+                )
                 return (
                     False,
                     "❌ You don't have permission to use bot commands. Contact a server administrator if you believe this is an error.",
                 )
 
+            logger.debug(f"[PERMISSIONS] User {user} has required roles - allowing")
             return True, None
 
     except Exception as e:
-        logger.error(f"Error checking command permissions: {e}")
+        logger.error(
+            f"[PERMISSIONS] Error checking command permissions: {e}", exc_info=True
+        )
         # On error, allow command (fail open to avoid blocking all commands)
         return True, None
 
@@ -77,14 +112,22 @@ def require_command_permission():
     """Decorator to check permissions for app commands (slash commands)"""
 
     async def predicate(interaction: discord.Interaction) -> bool:
+        logger.debug(
+            f"[DECORATOR] Permission check triggered for command: {interaction.command.name if interaction.command else 'unknown'}"
+        )
+
         has_permission, error_message = check_command_permissions(
             interaction.guild_id, interaction.user
         )
 
         if not has_permission:
+            logger.info(
+                f"[DECORATOR] Permission denied for {interaction.user} - sending error: {error_message}"
+            )
             await interaction.response.send_message(error_message, ephemeral=True)
             return False
 
+        logger.debug(f"[DECORATOR] Permission granted for {interaction.user}")
         return True
 
     return app_commands.check(predicate)
