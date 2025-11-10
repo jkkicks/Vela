@@ -114,8 +114,11 @@ async def run_api():
     try:
         logger.info(f"Starting API server on {settings.api_host}:{settings.api_port}")
 
+        # Import app directly to ensure lifespan runs immediately
+        from src.api.main import app
+
         config = uvicorn.Config(
-            app="src.api.main:app",
+            app=app,
             host=settings.api_host,
             port=settings.api_port,
             log_level=settings.log_level.lower(),
