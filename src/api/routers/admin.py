@@ -104,7 +104,9 @@ async def apps_page(
             "member_management": {
                 "enabled": guild.settings.get("member_management_enabled", False)
             },
-            "member_support": {"enabled": guild.settings.get("member_support_enabled", False)},
+            "member_support": {
+                "enabled": guild.settings.get("member_support_enabled", False)
+            },
         }
     else:
         # Default values if no guild settings exist

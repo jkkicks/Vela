@@ -150,7 +150,9 @@ def create_onboarding_modal(guild_id: int):
                         guild_settings = guild.settings
 
                     # Check approval mode
-                    approval_mode = guild_settings.get("onboarding_approval_mode", "auto")
+                    approval_mode = guild_settings.get(
+                        "onboarding_approval_mode", "auto"
+                    )
 
                     if approval_mode == "manual":
                         # Manual approval mode - set status to pending (0 or -1)
@@ -561,11 +563,15 @@ class OnboardingApprovalView(discord.ui.View):
                 )
             ).all()
 
-            logger.info(f"Checking approval permission for {interaction.user.name} in guild {self.guild_id}")
+            logger.info(
+                f"Checking approval permission for {interaction.user.name} in guild {self.guild_id}"
+            )
             logger.info(f"Found {len(approver_roles)} approver roles in database")
 
             if not approver_roles:
-                logger.warning(f"No approver roles configured for guild {self.guild_id}")
+                logger.warning(
+                    f"No approver roles configured for guild {self.guild_id}"
+                )
                 return False
 
             # Check if user has any of the approver roles
@@ -574,9 +580,13 @@ class OnboardingApprovalView(discord.ui.View):
 
             logger.info(f"Approver role IDs from DB: {approver_role_ids}")
             logger.info(f"User's role IDs from Discord: {user_role_ids}")
-            logger.info(f"User's role names: {[role.name for role in interaction.user.roles]}")
+            logger.info(
+                f"User's role names: {[role.name for role in interaction.user.roles]}"
+            )
 
-            has_permission = any(role_id in user_role_ids for role_id in approver_role_ids)
+            has_permission = any(
+                role_id in user_role_ids for role_id in approver_role_ids
+            )
             logger.info(f"Permission check result: {has_permission}")
 
             return has_permission
@@ -587,9 +597,7 @@ class OnboardingApprovalView(discord.ui.View):
         custom_id="vela:approve_onboarding",
         emoji="✅",
     )
-    async def approve_button(
-        self, interaction: Interaction, button: discord.ui.Button
-    ):
+    async def approve_button(self, interaction: Interaction, button: discord.ui.Button):
         """Handle approve button click"""
         # Extract user_id and guild_id from the message embed
         if not self.user_id or not self.guild_id:
@@ -715,7 +723,7 @@ class OnboardingApprovalView(discord.ui.View):
                     await member.send(
                         f"✅ Your onboarding request has been approved! Welcome to {guild.name}!"
                     )
-                except:
+                except (discord.Forbidden, discord.HTTPException):
                     logger.info(
                         f"Could not send DM to {member.name} (DMs might be disabled)"
                     )
@@ -826,7 +834,7 @@ class OnboardingApprovalView(discord.ui.View):
                         f"❌ Your onboarding request for {guild.name} has been denied. "
                         "Please contact a moderator for more information."
                     )
-                except:
+                except (discord.Forbidden, discord.HTTPException):
                     logger.info(
                         f"Could not send DM to {member.name} (DMs might be disabled)"
                     )

@@ -36,7 +36,9 @@ class VelaBot(commands.Bot):
         from src.bot.views.onboarding import OnboardingView, OnboardingApprovalView
 
         self.add_view(OnboardingView())
-        self.add_view(OnboardingApprovalView())  # Add approval view for persistent handling
+        self.add_view(
+            OnboardingApprovalView()
+        )  # Add approval view for persistent handling
 
         # Load all cogs
         await self.load_cogs()

@@ -408,7 +408,9 @@ async def configure_role(
     except (ValueError, TypeError):
         raise HTTPException(400, f"Invalid role_id: {role_id_raw}")
 
-    logger.info(f"Configuring role: role_id={role_id} (type={type(role_id)}), role_type={role_type}, role_name={role_name}, guild_id={current_user['guild_id']}")
+    logger.info(
+        f"Configuring role: role_id={role_id} (type={type(role_id)}), role_type={role_type}, role_name={role_name}, guild_id={current_user['guild_id']}"
+    )
 
     # For approver roles, we allow multiple roles of the same type
     if role_type == "onboarding_approver":
@@ -511,7 +513,9 @@ async def delete_role(
     session.add(audit_log)
     session.commit()
 
-    logger.info(f"Role {role_type} (ID: {role_id}) deleted by {current_user['username']}")
+    logger.info(
+        f"Role {role_type} (ID: {role_id}) deleted by {current_user['username']}"
+    )
 
     return {"message": "Role deleted successfully"}
 
@@ -951,9 +955,7 @@ async def toggle_app(
             dependency_key = app_settings_map.get(dependency)
             if dependency_key:
                 guild.settings[dependency_key] = True
-                logger.info(
-                    f"Auto-enabled {dependency} as dependency of {app_name}"
-                )
+                logger.info(f"Auto-enabled {dependency} as dependency of {app_name}")
 
     guild.settings[setting_key] = enabled
 

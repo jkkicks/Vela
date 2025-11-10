@@ -73,11 +73,19 @@ async def lifespan(app: FastAPI):
     print("\nLoaded Configuration:")
     print(f"  * API Host: {settings.api_host}:{settings.api_port}")
     print(f"  * Database: {settings.database_url}")
-    print(f"  * API Secret Key: {'[OK]' if settings.api_secret_key and settings.api_secret_key != 'change-this-secret-key-in-production' else '[MISSING]'}")
+    print(
+        f"  * API Secret Key: {'[OK]' if settings.api_secret_key and settings.api_secret_key != 'change-this-secret-key-in-production' else '[MISSING]'}"
+    )
     print(f"  * Encryption Key: {'[OK]' if settings.encryption_key else '[MISSING]'}")
-    print(f"  * Discord Client ID: {'[OK]' if settings.discord_client_id else '[MISSING] (required for OAuth)'}")
-    print(f"  * Discord Client Secret: {'[OK]' if settings.discord_client_secret else '[MISSING] (required for OAuth)'}")
-    print(f"  * Bot Token: {'[OK]' if settings.bot_token else '[MISSING] (required for bot)'}")
+    print(
+        f"  * Discord Client ID: {'[OK]' if settings.discord_client_id else '[MISSING] (required for OAuth)'}"
+    )
+    print(
+        f"  * Discord Client Secret: {'[OK]' if settings.discord_client_secret else '[MISSING] (required for OAuth)'}"
+    )
+    print(
+        f"  * Bot Token: {'[OK]' if settings.bot_token else '[MISSING] (required for bot)'}"
+    )
     print(f"  * Debug Mode: {'Enabled' if settings.debug else 'Disabled'}")
     print(f"  * Log Level: {settings.log_level}")
     print("\n" + "=" * 80 + "\n")
