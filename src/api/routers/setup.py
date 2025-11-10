@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from datetime import datetime, timedelta
 import logging
 import secrets
+import asyncio
 
 from src.shared.database import get_session
 from src.shared.models import AdminUser, Guild, Channel, Role
@@ -26,6 +27,31 @@ setup_csrf_tokens = {}
 
 # Store temporary OAuth user data during setup (in production, use Redis with TTL)
 setup_oauth_sessions = {}
+
+
+async def start_discord_bot(request: Request, bot_token: str):
+    """Start the Discord bot after initial setup"""
+    try:
+        # Check if bot is already running
+        bot = getattr(request.app.state, "bot", None)
+        if bot and bot.is_ready():
+            logger.info("Bot is already running")
+            return
+
+        # Import bot-related modules
+        from src.bot.main import VelaBot
+
+        # Create and start the bot
+        bot = VelaBot()
+        request.app.state.bot = bot
+
+        # Start the bot in the background
+        asyncio.create_task(bot.start(bot_token))
+        logger.info("Discord bot started successfully")
+
+    except Exception as e:
+        logger.error(f"Failed to start Discord bot: {e}")
+        # Don't raise - allow the application to continue
 
 
 def check_setup_allowed(session: Session):
@@ -176,6 +202,10 @@ async def initialize_setup(
         logger.info(
             f"Setup completed. Guild: {guild_name}, Admin: {discord_user['username']}"
         )
+
+        # Start the Discord bot now that setup is complete
+        asyncio.create_task(start_discord_bot(request, bot_token))
+        logger.info("Discord bot startup initiated")
 
         # Redirect to login
         redirect = RedirectResponse(url="/auth/login", status_code=302)

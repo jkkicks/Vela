@@ -69,7 +69,7 @@ class Channel(SQLModel, table=True):
     """Discord channels configuration"""
 
     __tablename__ = "channels"
-    __table_args__ = (UniqueConstraint("channel_id", "guild_id"),)
+    __table_args__ = (UniqueConstraint("channel_id", "guild_id", "channel_type"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     channel_id: int = Field(sa_column=Column(BigInteger, index=True))
