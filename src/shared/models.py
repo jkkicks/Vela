@@ -13,7 +13,7 @@ class Guild(SQLModel, table=True):
     __tablename__ = "guilds"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    guild_id: int = Field(index=True, unique=True, sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, index=True, unique=True))
     guild_name: str
     bot_token: str  # Encrypted - allows different bots per guild
     is_active: bool = True
@@ -54,7 +54,7 @@ class AdminUser(SQLModel, table=True):
     __tablename__ = "admin_users"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    discord_id: int = Field(index=True, unique=True, sa_column=Column(BigInteger))
+    discord_id: int = Field(sa_column=Column(BigInteger, index=True, unique=True))
     discord_username: str
     guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
     is_super_admin: bool = False  # Can manage all guilds
@@ -72,7 +72,7 @@ class Channel(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("channel_id", "guild_id"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    channel_id: int = Field(index=True, sa_column=Column(BigInteger))
+    channel_id: int = Field(sa_column=Column(BigInteger, index=True))
     channel_type: str  # 'welcome', 'bot_commands', 'logs'
     guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
     name: Optional[str] = None
@@ -92,7 +92,7 @@ class Role(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("role_id", "guild_id"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    role_id: int = Field(index=True, sa_column=Column(BigInteger))
+    role_id: int = Field(sa_column=Column(BigInteger, index=True))
     role_name: str
     role_type: Optional[str] = None  # 'onboarded', 'admin'
     permissions: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
@@ -109,7 +109,7 @@ class Member(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("user_id", "guild_id"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(index=True, sa_column=Column(BigInteger))
+    user_id: int = Field(sa_column=Column(BigInteger, index=True))
     guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
     username: str
     nickname: Optional[str] = None
