@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Member Support</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Configure support and help resources for your server members
+            </p>
+        </div>
+        <a href="/admin/apps" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+            Back to Apps
+        </a>
+    </div>
+
+    <!-- Help Button Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Support Button</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            Configure the support button that appears on the welcome message. This button provides quick access to help for new members.
+        </p>
+
+        <div class="space-y-4">
+            <!-- Enable Help Button -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Enable Support Button</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Show the support button on the welcome message
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="help_button_enabled"
+                        class="h-5 w-5 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                        {% if not guild or not guild.settings.get('help_button_config') or guild.settings.get('help_button_config', {}).get('enabled', True) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Help Button Text -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="block">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Button Text</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Customize the text shown on the support button
+                    </p>
+                    <input
+                        type="text"
+                        id="help_button_text"
+                        placeholder="Need Help?"
+                        value="{% if guild and guild.settings.get('help_button_config') %}{{ guild.settings.get('help_button_config', {}).get('button_text', 'Need Help?') }}{% else %}Need Help?{% endif %}"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                </label>
+            </div>
+
+            <!-- Help Message Content -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="block">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Support Message</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        The message that appears when members click the support button (shown only to the user)
+                    </p>
+                    <textarea
+                        id="help_message_content"
+                        rows="6"
+                        placeholder="We're here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin."
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >{% if guild and guild.settings.get('help_button_config') %}{{ guild.settings.get('help_button_config', {}).get('message_content', 'We\'re here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin.') }}{% else %}We're here to assist you! If you need help with onboarding or have any questions, please contact a moderator or admin.{% endif %}</textarea>
+                </label>
+            </div>
+
+            <button
+                onclick="saveHelpButtonConfig()"
+                class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+                Save Support Button Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-200 mb-2">How it Works</h3>
+        <p class="text-sm text-orange-700 dark:text-orange-300 mb-3">
+            The support button appears on the welcome message alongside other onboarding buttons. When clicked, it shows your custom support message to the member privately (ephemeral message).
+        </p>
+        <p class="text-sm text-orange-700 dark:text-orange-300">
+            After changing these settings, you must update or replace the welcome message for the changes to take effect. Go to the Welcome System app to update the message.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveHelpButtonConfig() {
+    const enabled = document.getElementById('help_button_enabled').checked;
+    const buttonText = document.getElementById('help_button_text').value;
+    const messageContent = document.getElementById('help_message_content').value;
+
+    if (!buttonText.trim()) {
+        alert('Button text cannot be empty');
+        return;
+    }
+
+    if (!messageContent.trim()) {
+        alert('Message content cannot be empty');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/config/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: 'help_button_config',
+                value: {
+                    enabled: enabled,
+                    button_text: buttonText,
+                    message_content: messageContent
+                }
+            })
+        });
+
+        if (response.ok) {
+            alert('Support button settings saved! Go to the Welcome System app and update or replace the welcome message for changes to take effect.');
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail || 'Failed to save settings'}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error saving support button settings');
+    }
+}
+</script>
+{% endblock %}

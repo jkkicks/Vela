@@ -81,11 +81,12 @@ class VelaBot(commands.Bot):
 
         print("Bot is ready!")
 
-    def _get_welcome_message_content(self, welcome_config: dict):
+    def _get_welcome_message_content(self, welcome_config: dict, guild_id: int):
         """Build welcome message content from configuration"""
         from src.bot.views.onboarding import OnboardingView
 
         message_type = welcome_config.get("type", "embed")
+        view = OnboardingView(guild_id=guild_id)
 
         # Default configuration
         default_config = {
@@ -111,8 +112,6 @@ class VelaBot(commands.Bot):
             ],
             "footer": "Enjoy your stay!",
         }
-
-        view = OnboardingView()
 
         if message_type == "plain":
             # Plain text message
@@ -190,7 +189,7 @@ class VelaBot(commands.Bot):
                 welcome_config = db_guild.settings.get("welcome_message_config", {})
 
             # Build message content
-            msg_data = self._get_welcome_message_content(welcome_config)
+            msg_data = self._get_welcome_message_content(welcome_config, guild_id)
 
             # Send message
             if msg_data["embed"]:
@@ -242,7 +241,7 @@ class VelaBot(commands.Bot):
                 welcome_config = db_guild.settings.get("welcome_message_config", {})
 
             # Build message content
-            msg_data = self._get_welcome_message_content(welcome_config)
+            msg_data = self._get_welcome_message_content(welcome_config, guild_id)
 
             # Update message
             if msg_data["embed"]:

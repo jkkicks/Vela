@@ -395,33 +395,65 @@ async def configure_role(
 ):
     """Configure a role for the guild"""
     data = await request.json()
-    role_id = data.get("role_id")
+    role_id_raw = data.get("role_id")
     role_type = data.get("role_type")
     role_name = data.get("role_name")
 
-    if not role_id or not role_type or not role_name:
+    if not role_id_raw or not role_type or not role_name:
         raise HTTPException(400, "role_id, role_type, and role_name are required")
 
-    # Check if role already exists
-    existing_role = session.exec(
-        select(Role).where(
-            Role.guild_id == current_user["guild_id"], Role.role_type == role_type
-        )
-    ).first()
+    # Convert role_id to int
+    try:
+        role_id = int(role_id_raw)
+    except (ValueError, TypeError):
+        raise HTTPException(400, f"Invalid role_id: {role_id_raw}")
 
-    if existing_role:
-        # Update existing role
-        existing_role.role_id = role_id
-        existing_role.role_name = role_name
+    logger.info(f"Configuring role: role_id={role_id} (type={type(role_id)}), role_type={role_type}, role_name={role_name}, guild_id={current_user['guild_id']}")
+
+    # For approver roles, we allow multiple roles of the same type
+    if role_type == "onboarding_approver":
+        # Check if this specific role_id already exists for this type
+        existing_role = session.exec(
+            select(Role).where(
+                Role.guild_id == current_user["guild_id"],
+                Role.role_type == role_type,
+                Role.role_id == role_id,
+            )
+        ).first()
+
+        if existing_role:
+            # Update existing role
+            existing_role.role_name = role_name
+        else:
+            # Create new role
+            role = Role(
+                role_id=role_id,
+                role_name=role_name,
+                role_type=role_type,
+                guild_id=current_user["guild_id"],
+            )
+            session.add(role)
     else:
-        # Create new role
-        role = Role(
-            role_id=role_id,
-            role_name=role_name,
-            role_type=role_type,
-            guild_id=current_user["guild_id"],
-        )
-        session.add(role)
+        # For other role types, only one role per type
+        existing_role = session.exec(
+            select(Role).where(
+                Role.guild_id == current_user["guild_id"], Role.role_type == role_type
+            )
+        ).first()
+
+        if existing_role:
+            # Update existing role
+            existing_role.role_id = role_id
+            existing_role.role_name = role_name
+        else:
+            # Create new role
+            role = Role(
+                role_id=role_id,
+                role_name=role_name,
+                role_type=role_type,
+                guild_id=current_user["guild_id"],
+            )
+            session.add(role)
 
     # Log the action
     audit_log = AuditLog(
@@ -437,6 +469,51 @@ async def configure_role(
     logger.info(f"Role {role_type} configured by {current_user['username']}")
 
     return {"message": "Role configured successfully"}
+
+
+@router.post("/config/role/delete")
+async def delete_role(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Delete a role configuration"""
+    data = await request.json()
+    role_id = data.get("role_id")
+    role_type = data.get("role_type")
+
+    if not role_id or not role_type:
+        raise HTTPException(400, "role_id and role_type are required")
+
+    # Find the role
+    role = session.exec(
+        select(Role).where(
+            Role.guild_id == current_user["guild_id"],
+            Role.role_id == role_id,
+            Role.role_type == role_type,
+        )
+    ).first()
+
+    if not role:
+        raise HTTPException(404, "Role not found")
+
+    # Delete the role
+    session.delete(role)
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="role_deleted",
+        details={"role_id": role_id, "role_type": role_type},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(f"Role {role_type} (ID: {role_id}) deleted by {current_user['username']}")
+
+    return {"message": "Role deleted successfully"}
 
 
 @router.post("/config/setting")
@@ -596,6 +673,49 @@ async def get_discord_channels(
     except Exception as e:
         logger.error(f"Error fetching Discord channels: {e}")
         return {"channels": [], "error": str(e)}
+
+
+@router.get("/discord/roles")
+async def get_discord_roles(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Get all roles from Discord for the guild"""
+    try:
+        # Get bot instance from app state
+        bot = getattr(request.app.state, "bot", None)
+
+        if not bot or not bot.is_ready():
+            return {"roles": [], "error": "Bot is not connected to Discord"}
+
+        # Get the Discord guild
+        discord_guild = bot.get_guild(current_user["guild_id"])
+
+        if not discord_guild:
+            return {"roles": [], "error": "Guild not found in Discord"}
+
+        # Get all roles (excluding @everyone)
+        roles = []
+        for role in discord_guild.roles:
+            if role.name != "@everyone":
+                roles.append(
+                    {
+                        "id": str(role.id),
+                        "name": role.name,
+                        "color": str(role.color),
+                        "position": role.position,
+                    }
+                )
+
+        # Sort by position (highest first)
+        roles.sort(key=lambda x: x["position"], reverse=True)
+
+        return {"roles": roles, "error": None}
+
+    except Exception as e:
+        logger.error(f"Error fetching Discord roles: {e}")
+        return {"roles": [], "error": str(e)}
 
 
 @router.post("/welcome/update-message")
@@ -800,6 +920,7 @@ async def toggle_app(
         "welcome_system": "welcome_enabled",
         "onboarding": "onboarding_enabled",
         "member_management": "member_management_enabled",
+        "member_support": "member_support_enabled",
     }
 
     setting_key = app_settings_map.get(app_name)
@@ -817,6 +938,22 @@ async def toggle_app(
     # Update settings
     if guild.settings is None:
         guild.settings = {}
+
+    # Handle app dependencies
+    dependencies = {
+        "onboarding": ["welcome_system"],  # Onboarding requires Welcome System
+        "member_support": ["welcome_system"],  # Member Support requires Welcome System
+    }
+
+    # If enabling an app with dependencies, auto-enable dependencies
+    if enabled and app_name in dependencies:
+        for dependency in dependencies[app_name]:
+            dependency_key = app_settings_map.get(dependency)
+            if dependency_key:
+                guild.settings[dependency_key] = True
+                logger.info(
+                    f"Auto-enabled {dependency} as dependency of {app_name}"
+                )
 
     guild.settings[setting_key] = enabled
 
