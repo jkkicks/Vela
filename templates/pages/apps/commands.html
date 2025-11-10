@@ -200,12 +200,12 @@ function addRole() {
         return;
     }
 
-    if (selectedRoles.has(parseInt(roleId))) {
+    if (selectedRoles.has(roleId)) {
         alert('Role already added');
         return;
     }
 
-    selectedRoles.add(parseInt(roleId));
+    selectedRoles.add(roleId);
 
     // Add to UI
     const container = document.getElementById('selectedRolesContainer');
@@ -244,7 +244,7 @@ function addRole() {
 }
 
 function removeRole(roleId) {
-    selectedRoles.delete(parseInt(roleId));
+    selectedRoles.delete(roleId);
 
     const roleElement = document.querySelector(`[data-role-id="${roleId}"]`);
     if (roleElement) {

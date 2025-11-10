@@ -99,12 +99,12 @@ async def run_bot():
         raise
     except discord.LoginFailure:
         logger.error("Failed to login to Discord: Invalid token")
-        print("❌ Failed to start Discord bot: Invalid or improper token")
+        print("[ERROR] Failed to start Discord bot: Invalid or improper token")
         print("   Please configure a valid bot token via the setup interface")
         # Don't raise - allow the application to continue running
     except Exception as e:
         logger.error(f"Bot error: {e}")
-        print(f"❌ Discord bot error: {e}")
+        print(f"[ERROR] Discord bot error: {e}")
         # Don't raise - allow the application to continue running
 
 
@@ -141,46 +141,16 @@ async def run_api():
         raise
 
 
-async def shutdown(tasks, signal_name="SIGINT"):
-    """Gracefully shutdown all tasks"""
-    logger.info(f"Received {signal_name}, shutting down...")
-    print("\n🛑 Shutting down Vela...")
-
-    # Cancel all tasks
-    for task in tasks:
-        if not task.done():
-            task.cancel()
-
-    # Wait for tasks to be cancelled (with timeout)
-    try:
-        await asyncio.wait_for(
-            asyncio.gather(*tasks, return_exceptions=True), timeout=5.0
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Some tasks did not complete within timeout")
-
-    # Cleanup bot instance
-    global bot_instance
-    if bot_instance and not bot_instance.is_closed():
-        try:
-            await asyncio.wait_for(bot_instance.close(), timeout=3.0)
-            print("✅ Discord bot stopped")
-        except asyncio.TimeoutError:
-            logger.warning("Bot close timed out")
-        except Exception as e:
-            logger.error(f"Error closing bot: {e}")
-
-    print("✅ Web server stopped")
 
 
 async def main():
     """Run both services concurrently"""
     print(
         """
-    ╔═══════════════════════════════════════╗
-    ║           Vela v2.0.0                 ║
-    ║  Discord Onboarding Bot with Web UI   ║
-    ╚═══════════════════════════════════════╝
+    ========================================
+               Vela v2.0.0
+      Discord Onboarding Bot with Web UI
+    ========================================
     """
     )
 
@@ -195,13 +165,34 @@ async def main():
         setup_completed = admin_exists is not None
 
     if not setup_completed:
-        print("\n⚠️  First-run setup required!")
+        print("\n[WARNING] First-run setup required!")
         print(
             f"Please visit http://localhost:{settings.api_port}/setup to complete initial configuration\n"
         )
 
     # Create tasks for both services
     tasks = []
+    loop = asyncio.get_event_loop()
+    shutdown_event = asyncio.Event()
+
+    # Signal handler to trigger shutdown
+    def signal_handler():
+        """Handle shutdown signals"""
+        logger.info("Received shutdown signal")
+        shutdown_event.set()
+        # Cancel all tasks
+        for task in asyncio.all_tasks(loop):
+            task.cancel()
+
+    # Register signal handlers based on platform
+    if sys.platform == 'win32':
+        # Windows signal handling
+        signal.signal(signal.SIGBREAK, lambda s, f: signal_handler())
+        signal.signal(signal.SIGINT, lambda s, f: signal_handler())
+    else:
+        # Unix signal handling
+        loop.add_signal_handler(signal.SIGTERM, signal_handler)
+        loop.add_signal_handler(signal.SIGINT, signal_handler)
 
     # Always start the API
     api_task = asyncio.create_task(run_api())
@@ -215,32 +206,29 @@ async def main():
     else:
         logger.info("Skipping Discord bot startup - setup not completed")
 
-    print(f"\n✅ Web interface available at: http://localhost:{settings.api_port}")
-    print(f"📚 API documentation at: http://localhost:{settings.api_port}/docs\n")
+    print(f"\n[OK] Web interface available at: http://localhost:{settings.api_port}")
+    print(f"[INFO] API documentation at: http://localhost:{settings.api_port}/docs\n")
     print("Press Ctrl+C to stop\n")
 
-    # Set up signal handlers for graceful shutdown
-    loop = asyncio.get_running_loop()
-
-    def handle_shutdown():
-        asyncio.create_task(shutdown(tasks))
-
-    # On Windows, only SIGINT is available
-    try:
-        loop.add_signal_handler(signal.SIGINT, handle_shutdown)
-    except (NotImplementedError, AttributeError):
-        # Windows doesn't support add_signal_handler
-        # Will rely on KeyboardInterrupt exception instead
-        pass
-
-    # Run both services with proper shutdown handling
+    # Run both services
     try:
         await asyncio.gather(*tasks, return_exceptions=False)
     except (KeyboardInterrupt, asyncio.CancelledError):
-        await shutdown(tasks, "KeyboardInterrupt")
+        print("\n\nShutting down...")
+        # Cancel all tasks
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        # Wait for tasks to cancel
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Close bot if needed
+        if bot_instance and not bot_instance.is_closed():
+            await bot_instance.close()
+
+        print("Shutdown complete")
     except Exception as e:
         logger.error(f"Application error: {e}")
-        await shutdown(tasks, "Exception")
         raise
 
 
@@ -248,9 +236,9 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        # Shutdown already handled in main()
-        print("👋 Goodbye!")
+        print("\nGoodbye!")
+        sys.exit(0)
     except Exception as e:
         logger.error(f"Fatal error: {e}")
-        print(f"❌ Fatal error: {e}")
+        print(f"Fatal error: {e}")
         sys.exit(1)

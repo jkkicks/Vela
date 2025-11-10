@@ -339,7 +339,7 @@
                     <div class="flex gap-3">
                         <div class="flex-1">
                             <input
-                                type="number"
+                                type="text"
                                 id="approvalChannelIdInput"
                                 placeholder="Enter Channel ID (e.g. 1234567890123456789)"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -432,7 +432,7 @@
                     <div class="flex gap-3">
                         <div class="flex-1">
                             <input
-                                type="number"
+                                type="text"
                                 id="approverRoleIdInput"
                                 placeholder="Enter Role ID (e.g. 1234567890123456789)"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -477,7 +477,7 @@
                     Role ID
                 </label>
                 <input
-                    type="number"
+                    type="text"
                     id="roleIdInput"
                     placeholder="e.g. 1234567890123456789"
                     value="{{ onboarded_role.role_id if onboarded_role else '' }}"
@@ -952,7 +952,7 @@ async function saveRole() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                role_id: parseInt(roleId),
+                role_id: roleId,
                 role_type: 'onboarded',
                 role_name: roleName
             })
@@ -1068,19 +1068,19 @@ async function loadApprovalChannels() {
 
                         const option = document.createElement('option');
                         option.value = JSON.stringify(channel);
-                        option.textContent = '# ' + channel.name;
+                        option.textContent = '# ' + channel.name + ' (ID: ' + channel.id + ')';
                         optgroup.appendChild(option);
                     } else {
                         const option = document.createElement('option');
                         option.value = JSON.stringify(channel);
-                        option.textContent = '# ' + channel.name;
+                        option.textContent = '# ' + channel.name + ' (ID: ' + channel.id + ')';
                         select.appendChild(option);
                     }
                     currentCategory = channel.category;
                 } else {
                     const option = document.createElement('option');
                     option.value = JSON.stringify(channel);
-                    option.textContent = '# ' + channel.name;
+                    option.textContent = '# ' + channel.name + ' (ID: ' + channel.id + ')';
                     select.appendChild(option);
                 }
             }
@@ -1113,7 +1113,7 @@ async function saveApprovalChannel() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                channel_id: parseInt(channel.id),
+                channel_id: channel.id,
                 channel_type: 'onboarding_approval',
                 name: channel.name
             })
@@ -1147,7 +1147,7 @@ async function saveApprovalChannelManual() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                channel_id: parseInt(channelId),
+                channel_id: channelId,
                 channel_type: 'onboarding_approval',
                 name: 'Unknown Channel'
             })
