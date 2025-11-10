@@ -3,7 +3,7 @@
 from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlmodel import Field, SQLModel, JSON, Column, Relationship
-from sqlalchemy import UniqueConstraint, BigInteger
+from sqlalchemy import UniqueConstraint, BigInteger, ForeignKey
 import sqlalchemy as sa
 
 
@@ -36,7 +36,7 @@ class Config(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     key: str = Field(index=True)
-    guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, ForeignKey("guilds.guild_id")))
     value: str
     description: Optional[str] = None
     updated_at: datetime = Field(
@@ -56,7 +56,7 @@ class AdminUser(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     discord_id: int = Field(sa_column=Column(BigInteger, index=True, unique=True))
     discord_username: str
-    guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, ForeignKey("guilds.guild_id")))
     is_super_admin: bool = False  # Can manage all guilds
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
@@ -74,7 +74,7 @@ class Channel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     channel_id: int = Field(sa_column=Column(BigInteger, index=True))
     channel_type: str  # 'welcome', 'bot_commands', 'logs'
-    guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, ForeignKey("guilds.guild_id")))
     name: Optional[str] = None
     enabled: bool = True
     message_id: Optional[int] = Field(
@@ -96,7 +96,7 @@ class Role(SQLModel, table=True):
     role_name: str
     role_type: Optional[str] = None  # 'onboarded', 'admin'
     permissions: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, ForeignKey("guilds.guild_id")))
 
     # Relationships
     guild: Optional[Guild] = Relationship(back_populates="roles")
@@ -110,7 +110,7 @@ class Member(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(sa_column=Column(BigInteger, index=True))
-    guild_id: int = Field(foreign_key="guilds.guild_id", sa_column=Column(BigInteger))
+    guild_id: int = Field(sa_column=Column(BigInteger, ForeignKey("guilds.guild_id")))
     username: str
     nickname: Optional[str] = None
     firstname: Optional[str] = None
