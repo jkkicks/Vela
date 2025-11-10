@@ -141,8 +141,6 @@ async def run_api():
         raise
 
 
-
-
 async def main():
     """Run both services concurrently"""
     print(
@@ -185,7 +183,7 @@ async def main():
             task.cancel()
 
     # Register signal handlers based on platform
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Windows signal handling
         signal.signal(signal.SIGBREAK, lambda s, f: signal_handler())
         signal.signal(signal.SIGINT, lambda s, f: signal_handler())
