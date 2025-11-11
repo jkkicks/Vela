@@ -353,8 +353,11 @@ class OnboardingView(discord.ui.View):
         # Load help button configuration from guild settings
         self.help_config = self._load_help_config()
 
-        # Only add the help button if it's enabled
-        if self.help_config.get("enabled", True):
+        # Check if member support app is enabled
+        member_support_enabled = self._is_member_support_enabled()
+
+        # Only add the help button if both the global app and button config are enabled
+        if member_support_enabled and self.help_config.get("enabled", True):
             help_button = discord.ui.Button(
                 label=self.help_config.get("button_text", "Need Help?"),
                 style=discord.ButtonStyle.secondary,
@@ -363,6 +366,24 @@ class OnboardingView(discord.ui.View):
             )
             help_button.callback = self.help_button_callback
             self.add_item(help_button)
+
+    def _is_member_support_enabled(self):
+        """Check if member support app is globally enabled"""
+        if not self.guild_id:
+            return True
+
+        try:
+            with next(get_session()) as session:
+                guild = session.exec(
+                    select(Guild).where(Guild.guild_id == self.guild_id)
+                ).first()
+
+                if guild and guild.settings:
+                    return guild.settings.get("member_support_enabled", True)
+        except Exception as e:
+            logger.error(f"Error checking member support enabled: {e}")
+
+        return True
 
     def _load_help_config(self):
         """Load help button configuration from database"""
@@ -403,16 +424,27 @@ class OnboardingView(discord.ui.View):
         """Handle onboarding button click"""
         # Check if user is already onboarded and if prevent_reonboarding is enabled
         with next(get_session()) as session:
+            # Get guild settings
+            guild = session.exec(
+                select(Guild).where(Guild.guild_id == interaction.guild.id)
+            ).first()
+
+            # Check if onboarding app is enabled
+            if guild and guild.settings:
+                onboarding_enabled = guild.settings.get("onboarding_enabled", True)
+                if not onboarding_enabled:
+                    await interaction.response.send_message(
+                        "⚠️ Onboarding is currently disabled on this server.\n"
+                        "Please contact a server admin if you need assistance.",
+                        ephemeral=True,
+                    )
+                    return
+
             db_member = session.exec(
                 select(Member).where(
                     Member.user_id == interaction.user.id,
                     Member.guild_id == interaction.guild.id,
                 )
-            ).first()
-
-            # Get guild settings
-            guild = session.exec(
-                select(Guild).where(Guild.guild_id == interaction.guild.id)
             ).first()
 
             prevent_reonboarding = True
@@ -505,6 +537,17 @@ class OnboardingView(discord.ui.View):
                 guild = session.exec(
                     select(Guild).where(Guild.guild_id == interaction.guild.id)
                 ).first()
+
+                # Check if member support app is enabled
+                if guild and guild.settings:
+                    member_support_enabled = guild.settings.get("member_support_enabled", True)
+                    if not member_support_enabled:
+                        await interaction.response.send_message(
+                            "⚠️ Member support is currently disabled on this server.\n"
+                            "Please contact a server admin if you need assistance.",
+                            ephemeral=True,
+                        )
+                        return
 
                 if guild and guild.settings:
                     help_config = guild.settings.get(
