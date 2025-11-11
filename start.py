@@ -1,31 +1,5 @@
 #!/usr/bin/env python3
-"""
-Vela Production Startup Script
-================================
-
-This is the MAIN ENTRY POINT for running Vela in production.
-
-Usage: python start.py
-
-What this script does:
-1. Checks for and activates the Python 3.13 virtual environment (.venv/)
-2. Validates the .env configuration file exists
-3. Generates encryption keys if needed
-4. Downloads static assets (htmx.min.js, etc.) if missing
-5. Starts the Vela application (src/main.py)
-6. Handles graceful shutdown on Ctrl+C (SIGINT/SIGTERM)
-
-Why we need this script:
-- Ensures proper environment setup before starting
-- Provides cross-platform signal handling for clean shutdowns
-- Manages the application process lifecycle (start/stop/cleanup)
-- Prevents port conflicts by properly cleaning up child processes
-
-Critical features:
-- Signal handlers (lines 195-209): Required for Ctrl+C to work properly
-- Process cleanup (lines 170-193): Ensures child processes are terminated
-- Virtual environment auto-activation: Seamlessly switches to .venv if needed
-"""
+"""Quick start script for Vela"""
 
 import os
 import sys
@@ -34,25 +8,26 @@ import signal
 import atexit
 from pathlib import Path
 
-
 def is_venv():
     """Check if currently running in a virtual environment"""
     return (
-        hasattr(sys, "real_prefix")
-        or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix)
-        or os.environ.get("VIRTUAL_ENV") is not None
+        hasattr(sys, 'real_prefix') or
+        (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix) or
+        os.environ.get('VIRTUAL_ENV') is not None
     )
-
 
 def verify_venv_python_version(venv_python):
     """Verify the venv is using Python 3.13"""
     try:
         result = subprocess.run(
-            [str(venv_python), "--version"], capture_output=True, text=True, check=True
+            [str(venv_python), '--version'],
+            capture_output=True,
+            text=True,
+            check=True
         )
         version = result.stdout.strip()
 
-        if "3.13" not in version:
+        if '3.13' not in version:
             return False, version
         return True, version
     except Exception:
@@ -61,7 +36,7 @@ def verify_venv_python_version(venv_python):
 
 def check_venv():
     """Check if venv exists and use it automatically"""
-    venv_path = Path(".venv")
+    venv_path = Path('.venv')
 
     # If already in a venv, we're good
     if is_venv():
@@ -71,10 +46,10 @@ def check_venv():
     print("Checking virtual environment...")
 
     # Determine the path to the venv python
-    if sys.platform == "win32":
-        venv_python = venv_path / "Scripts" / "python.exe"
+    if sys.platform == 'win32':
+        venv_python = venv_path / 'Scripts' / 'python.exe'
     else:
-        venv_python = venv_path / "bin" / "python"
+        venv_python = venv_path / 'bin' / 'python'
 
     # Check if .venv exists
     if not venv_path.exists() or not venv_python.exists():
@@ -102,7 +77,6 @@ def check_venv():
     print("-" * 50)
     os.execv(str(venv_python), [str(venv_python)] + sys.argv)
 
-
 def check_env():
     """Check if .env file exists and has minimum configuration"""
     env_path = Path(".env")
@@ -121,35 +95,29 @@ def check_env():
 
     # Check if encryption key exists
     env_content = env_path.read_text()
-    if (
-        "ENCRYPTION_KEY=" not in env_content
-        or "ENCRYPTION_KEY=\n" in env_content
-        or "ENCRYPTION_KEY=$" in env_content
-    ):
+    if "ENCRYPTION_KEY=" not in env_content or "ENCRYPTION_KEY=\n" in env_content or "ENCRYPTION_KEY=$" in env_content:
         print("\n[WARNING] ENCRYPTION_KEY not set in .env")
         print("Generating encryption key...")
 
         from cryptography.fernet import Fernet
-
         key = Fernet.generate_key().decode()
 
         # Add or update encryption key in .env
-        lines = env_content.split("\n")
+        lines = env_content.split('\n')
         key_found = False
         for i, line in enumerate(lines):
-            if line.startswith("ENCRYPTION_KEY="):
-                lines[i] = f"ENCRYPTION_KEY={key}"
+            if line.startswith('ENCRYPTION_KEY='):
+                lines[i] = f'ENCRYPTION_KEY={key}'
                 key_found = True
                 break
 
         if not key_found:
-            lines.append(f"ENCRYPTION_KEY={key}")
+            lines.append(f'ENCRYPTION_KEY={key}')
 
-        env_path.write_text("\n".join(lines))
-        print("[OK] Added ENCRYPTION_KEY to .env")
+        env_path.write_text('\n'.join(lines))
+        print(f"[OK] Added ENCRYPTION_KEY to .env")
 
     return True
-
 
 def check_static_assets():
     """Check if static assets are downloaded"""
@@ -162,16 +130,13 @@ def check_static_assets():
     else:
         print("[OK] Static assets already downloaded")
 
-
 def main():
-    print(
-        """
+    print("""
 ========================================
            Vela v2.0 Startup
   Discord Onboarding Bot with Web UI
 ========================================
-    """
-    )
+    """)
 
     print("Checking prerequisites...\n")
 
@@ -197,18 +162,15 @@ def main():
         """Cleanup function to ensure the process is terminated"""
         nonlocal process
         if process and process.poll() is None:
-            if sys.platform == "win32":
+            if sys.platform == 'win32':
                 # On Windows, use taskkill to force kill the process tree
-                subprocess.run(
-                    ["taskkill", "/F", "/T", "/PID", str(process.pid)],
-                    capture_output=True,
-                    check=False,
-                )
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)],
+                             capture_output=True, check=False)
             else:
                 # On Unix, terminate the process group
                 try:
                     os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                except (ProcessLookupError, AttributeError, OSError):
+                except:
                     process.terminate()
 
             # Give it a moment to terminate
@@ -225,7 +187,7 @@ def main():
         sys.exit(0)
 
     # Register signal handlers
-    if sys.platform == "win32":
+    if sys.platform == 'win32':
         # Windows signal handling
         signal.signal(signal.SIGBREAK, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
@@ -239,13 +201,16 @@ def main():
 
     try:
         # Use subprocess.Popen for better process control
-        if sys.platform == "win32":
+        if sys.platform == 'win32':
             # On Windows, don't create a new process group to allow Ctrl+C to work
-            process = subprocess.Popen([sys.executable, "-m", "src.main"])
+            process = subprocess.Popen(
+                [sys.executable, '-m', 'src.main']
+            )
         else:
             # On Unix, create a new process group
             process = subprocess.Popen(
-                [sys.executable, "-m", "src.main"], preexec_fn=os.setsid
+                [sys.executable, '-m', 'src.main'],
+                preexec_fn=os.setsid
             )
 
         # Wait for the process to complete
@@ -261,7 +226,6 @@ def main():
         sys.exit(1)
     finally:
         cleanup_process()
-
 
 if __name__ == "__main__":
     main()
