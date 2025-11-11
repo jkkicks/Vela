@@ -422,7 +422,7 @@ class OnboardingView(discord.ui.View):
             if prevent_reonboarding and db_member and db_member.onboarding_status > 0:
                 await interaction.response.send_message(
                     "✅ You have already completed onboarding!\n"
-                    "To change your nickname, please use the `/setnick` command or contact a moderator.",
+                    "Contact a server admin if you need adjustments made.",
                     ephemeral=True,
                 )
                 return
