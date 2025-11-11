@@ -651,7 +651,50 @@ async def update_welcome_message(
 
     logger.info(f"Welcome message configuration updated by {current_user['username']}")
 
-    return {"message": "Welcome message configuration updated successfully"}
+    # Check if auto-update is enabled
+    auto_updated = False
+    auto_update_error = None
+
+    if guild.settings.get("welcome_enabled", True):
+        # Try to auto-update the Discord message (same logic as manual update button)
+        try:
+            bot = getattr(request.app.state, "bot", None)
+            if not bot or not bot.is_ready():
+                auto_update_error = "Bot is not connected to Discord"
+            else:
+                # Get welcome channel (fresh query after commit)
+                welcome_channel = session.exec(
+                    select(Channel).where(
+                        Channel.guild_id == current_user["guild_id"],
+                        Channel.channel_type == "welcome",
+                    )
+                ).first()
+
+                if not welcome_channel:
+                    auto_update_error = "Welcome channel not configured"
+                elif not welcome_channel.message_id:
+                    auto_update_error = "No welcome message exists yet. Use 'Send/Replace Message' to create one first."
+                else:
+                    # Update the message
+                    success, message = await bot.update_welcome_message(
+                        current_user["guild_id"],
+                        welcome_channel.channel_id,
+                        welcome_channel.message_id,
+                    )
+                    if success:
+                        auto_updated = True
+                        logger.info(f"Welcome message auto-updated in Discord by {current_user['username']}")
+                    else:
+                        auto_update_error = message
+        except Exception as e:
+            logger.error(f"Failed to auto-update welcome message: {e}")
+            auto_update_error = str(e)
+
+    return {
+        "message": "Welcome message configuration updated successfully",
+        "auto_updated": auto_updated,
+        "auto_update_error": auto_update_error
+    }
 
 
 @router.get("/discord/channels")
