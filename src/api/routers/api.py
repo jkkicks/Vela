@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
 import logging
+import discord
 
 from src.shared.database import get_session
 from src.shared.models import Member, Guild, Config, AuditLog, Role, Channel
@@ -37,7 +38,7 @@ async def get_stats(
             select(Member).where(Member.guild_id == current_user["guild_id"])
         ).all()
 
-    onboarded = [m for m in total_members if m.onboarding_status > 0]
+    onboarded = [m for m in total_members if m.onboarding_status == 1]
 
     return StatsResponse(
         total_guilds=len(total_guilds),
@@ -216,6 +217,491 @@ async def delete_user(
 
     return {
         "message": "User deleted successfully",
+        "user_id": user_id,
+        "discord_updated": discord_updated,
+    }
+
+
+@router.post("/users/{user_id}/approve")
+async def approve_user(
+    user_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Approve a pending onboarding request"""
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
+
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    # Check permission
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
+        raise HTTPException(403, "Access denied")
+
+    # Check if user is pending
+    if user.onboarding_status != 0:
+        raise HTTPException(
+            400,
+            f"User is not pending (status: {user.onboarding_status})",
+        )
+
+    # Update member status
+    user.onboarding_status = 1
+    user.onboarding_completed_at = datetime.utcnow()
+
+    # Get guild settings
+    guild = session.exec(select(Guild).where(Guild.guild_id == user.guild_id)).first()
+    guild_settings = guild.settings if guild and guild.settings else {}
+
+    # Get onboarded role
+    onboarded_role = session.exec(
+        select(Role).where(
+            Role.guild_id == user.guild_id,
+            Role.role_type == "onboarded",
+        )
+    ).first()
+
+    # Log the approval
+    audit_log = AuditLog(
+        guild_id=user.guild_id,
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="onboarding_approved",
+        details={
+            "approved_user_id": user.user_id,
+            "approved_username": user.username,
+            "approved_by": current_user["username"],
+        },
+    )
+    session.add(audit_log)
+    session.commit()
+
+    # Update Discord member (nickname and role)
+    discord_updated = False
+    try:
+        bot_instance = getattr(request.app.state, "bot", None)
+        logger.info(
+            f"Attempting to approve onboarding for {user.username} (ID: {user.user_id}, Guild: {user.guild_id})"
+        )
+
+        if bot_instance and bot_instance.user:
+            logger.info(f"Bot instance found: {bot_instance.user.name}")
+            discord_guild = bot_instance.get_guild(user.guild_id)
+
+            if discord_guild:
+                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                member = discord_guild.get_member(user.user_id)
+
+                if member:
+                    logger.info(
+                        f"Member found: {member.name} (current nick: {member.nick})"
+                    )
+
+                    # Update nickname if enabled and set
+                    if guild_settings.get("set_nickname", True) and user.nickname:
+                        try:
+                            await member.edit(nick=user.nickname)
+                            logger.info(
+                                f"✓ Updated nickname for {member.name} to {user.nickname}"
+                            )
+                            discord_updated = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not update nickname for {member.name}: {e}"
+                            )
+
+                    # Add onboarded role if enabled and configured
+                    if guild_settings.get("auto_role", True) and onboarded_role:
+                        try:
+                            role = discord_guild.get_role(onboarded_role.role_id)
+                            if role:
+                                await member.add_roles(role)
+                                logger.info(
+                                    f"✓ Added role {role.name} to {member.name}"
+                                )
+                                discord_updated = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not add role to {member.name}: {e}"
+                            )
+
+                    # Send DM to user
+                    try:
+                        await member.send(
+                            f"✅ Your onboarding request has been approved! Welcome to {discord_guild.name}!"
+                        )
+                    except Exception as e:
+                        logger.info(
+                            f"Could not send DM to {member.name} (DMs might be disabled): {e}"
+                        )
+
+                    # Send onboarding completion notification
+                    try:
+                        await bot_instance.send_notification(
+                            "onboarding_complete", member
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error sending onboarding completion notification: {e}"
+                        )
+
+                else:
+                    logger.warning(
+                        f"✗ Member {user.user_id} not found in guild {user.guild_id}"
+                    )
+
+                # Update the approval request message in Discord (regardless of whether member was found)
+                try:
+                    # Get the approval channel
+                    approval_channel_config = session.exec(
+                        select(Channel).where(
+                            Channel.guild_id == user.guild_id,
+                            Channel.channel_type == "onboarding_approval",
+                        )
+                    ).first()
+
+                    if approval_channel_config:
+                        approval_channel = discord_guild.get_channel(
+                            approval_channel_config.channel_id
+                        )
+
+                        if approval_channel:
+                            # Search for the approval request message for this user
+                            # Look through recent messages (last 100) to find the one for this user
+                            async for message in approval_channel.history(limit=100):
+                                if (
+                                    message.embeds
+                                    and message.author.id == bot_instance.user.id
+                                ):
+                                    embed = message.embeds[0]
+                                    # Check if this message is for our user by looking for their ID in the fields
+                                    user_id_found = False
+                                    for field in embed.fields:
+                                        if (
+                                            field.name == "User ID"
+                                            and str(user.user_id) in field.value
+                                        ):
+                                            user_id_found = True
+                                            break
+
+                                    if user_id_found:
+                                        # Found the approval request message! Update it
+                                        logger.info(
+                                            f"Found approval request message (ID: {message.id}) for user {user.username}"
+                                        )
+
+                                        # Update the embed
+                                        embed.color = discord.Color.green()
+                                        embed.title = "✅ Onboarding Request Approved"
+                                        embed.add_field(
+                                            name="Approved By",
+                                            value=f"<@{current_user['discord_id']}> (via Admin Panel)",
+                                            inline=False,
+                                        )
+                                        embed.timestamp = datetime.utcnow()
+
+                                        # Disable all buttons
+                                        view = discord.ui.View()
+                                        approve_button = discord.ui.Button(
+                                            label="Approve",
+                                            style=discord.ButtonStyle.success,
+                                            custom_id="vela:approve_onboarding",
+                                            emoji="✅",
+                                            disabled=True,
+                                        )
+                                        deny_button = discord.ui.Button(
+                                            label="Deny",
+                                            style=discord.ButtonStyle.danger,
+                                            custom_id="vela:deny_onboarding",
+                                            emoji="❌",
+                                            disabled=True,
+                                        )
+                                        view.add_item(approve_button)
+                                        view.add_item(deny_button)
+
+                                        await message.edit(embed=embed, view=view)
+                                        logger.info(
+                                            f"✓ Updated approval request message for {user.username}"
+                                        )
+                                        break
+                        else:
+                            logger.warning(
+                                f"Approval channel {approval_channel_config.channel_id} not found in guild"
+                            )
+                    else:
+                        logger.info(
+                            "No approval channel configured, skipping message update"
+                        )
+                except Exception as e:
+                    logger.warning(f"Could not update approval request message: {e}")
+            else:
+                logger.warning(
+                    f"✗ Guild {user.guild_id} not found. Bot is in guilds: {[g.id for g in bot_instance.guilds]}"
+                )
+        else:
+            logger.warning(
+                f"✗ Bot instance not ready (instance: {bot_instance}, has user: {bot_instance.user if bot_instance else 'N/A'})"
+            )
+    except Exception as e:
+        logger.error(f"✗ Error updating Discord state for {user.username}: {e}")
+
+    logger.info(
+        f"User {user.username} (ID: {user.user_id}) approved by {current_user['username']}"
+    )
+
+    return {
+        "message": "User approved successfully",
+        "user_id": user_id,
+        "discord_updated": discord_updated,
+    }
+
+
+@router.post("/users/{user_id}/demote")
+async def demote_user(
+    user_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Demote an onboarded user (remove role and nickname but keep data)"""
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
+
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    # Check permission
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
+        raise HTTPException(403, "Access denied")
+
+    # Check if user is onboarded
+    if user.onboarding_status != 1:
+        raise HTTPException(
+            400,
+            f"User is not onboarded (status: {user.onboarding_status})",
+        )
+
+    # Update member status to demoted (2)
+    user.onboarding_status = 2
+
+    # Log the demotion
+    audit_log = AuditLog(
+        guild_id=user.guild_id,
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="user_demoted",
+        details={
+            "demoted_user_id": user.user_id,
+            "demoted_username": user.username,
+            "demoted_by": current_user["username"],
+        },
+    )
+    session.add(audit_log)
+    session.commit()
+
+    # Update Discord member (remove nickname and role)
+    discord_updated = False
+    try:
+        bot_instance = getattr(request.app.state, "bot", None)
+        logger.info(
+            f"Attempting to demote {user.username} (ID: {user.user_id}, Guild: {user.guild_id})"
+        )
+
+        if bot_instance and bot_instance.user:
+            logger.info(f"Bot instance found: {bot_instance.user.name}")
+            discord_guild = bot_instance.get_guild(user.guild_id)
+
+            if discord_guild:
+                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                member = discord_guild.get_member(user.user_id)
+
+                if member:
+                    logger.info(
+                        f"Member found: {member.name} (current nick: {member.nick})"
+                    )
+
+                    # Reset nickname
+                    try:
+                        await member.edit(nick=None)
+                        logger.info(f"✓ Reset nickname for {member.name}")
+                        discord_updated = True
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not reset nickname for {member.name}: {e}"
+                        )
+
+                    # Remove onboarded role
+                    onboarded_role = session.exec(
+                        select(Role).where(
+                            Role.guild_id == user.guild_id,
+                            Role.role_type == "onboarded",
+                        )
+                    ).first()
+
+                    if onboarded_role:
+                        try:
+                            role = discord_guild.get_role(onboarded_role.role_id)
+                            if role and role in member.roles:
+                                await member.remove_roles(role)
+                                logger.info(
+                                    f"✓ Removed onboarded role from {member.name}"
+                                )
+                                discord_updated = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not remove role from {member.name}: {e}"
+                            )
+
+                else:
+                    logger.warning(
+                        f"✗ Member {user.user_id} not found in guild {user.guild_id}"
+                    )
+            else:
+                logger.warning(
+                    f"✗ Guild {user.guild_id} not found. Bot is in guilds: {[g.id for g in bot_instance.guilds]}"
+                )
+        else:
+            logger.warning(
+                f"✗ Bot instance not ready (instance: {bot_instance}, has user: {bot_instance.user if bot_instance else 'N/A'})"
+            )
+    except Exception as e:
+        logger.error(f"✗ Error updating Discord state for {user.username}: {e}")
+
+    logger.info(
+        f"User {user.username} (ID: {user.user_id}) demoted by {current_user['username']}"
+    )
+
+    return {
+        "message": "User demoted successfully",
+        "user_id": user_id,
+        "discord_updated": discord_updated,
+    }
+
+
+@router.post("/users/{user_id}/restore")
+async def restore_user(
+    user_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Restore a demoted user (re-add role and nickname)"""
+    user = session.exec(select(Member).where(Member.id == user_id)).first()
+
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    # Check permission
+    if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
+        raise HTTPException(403, "Access denied")
+
+    # Check if user is demoted
+    if user.onboarding_status != 2:
+        raise HTTPException(
+            400,
+            f"User is not demoted (status: {user.onboarding_status})",
+        )
+
+    # Update member status to onboarded (1)
+    user.onboarding_status = 1
+
+    # Get guild settings
+    guild = session.exec(select(Guild).where(Guild.guild_id == user.guild_id)).first()
+    guild_settings = guild.settings if guild and guild.settings else {}
+
+    # Get onboarded role
+    onboarded_role = session.exec(
+        select(Role).where(
+            Role.guild_id == user.guild_id,
+            Role.role_type == "onboarded",
+        )
+    ).first()
+
+    # Log the restoration
+    audit_log = AuditLog(
+        guild_id=user.guild_id,
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action="user_restored",
+        details={
+            "restored_user_id": user.user_id,
+            "restored_username": user.username,
+            "restored_by": current_user["username"],
+        },
+    )
+    session.add(audit_log)
+    session.commit()
+
+    # Update Discord member (restore nickname and role)
+    discord_updated = False
+    try:
+        bot_instance = getattr(request.app.state, "bot", None)
+        logger.info(
+            f"Attempting to restore {user.username} (ID: {user.user_id}, Guild: {user.guild_id})"
+        )
+
+        if bot_instance and bot_instance.user:
+            logger.info(f"Bot instance found: {bot_instance.user.name}")
+            discord_guild = bot_instance.get_guild(user.guild_id)
+
+            if discord_guild:
+                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                member = discord_guild.get_member(user.user_id)
+
+                if member:
+                    logger.info(
+                        f"Member found: {member.name} (current nick: {member.nick})"
+                    )
+
+                    # Restore nickname if enabled and set
+                    if guild_settings.get("set_nickname", True) and user.nickname:
+                        try:
+                            await member.edit(nick=user.nickname)
+                            logger.info(
+                                f"✓ Restored nickname for {member.name} to {user.nickname}"
+                            )
+                            discord_updated = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not restore nickname for {member.name}: {e}"
+                            )
+
+                    # Add onboarded role if enabled and configured
+                    if guild_settings.get("auto_role", True) and onboarded_role:
+                        try:
+                            role = discord_guild.get_role(onboarded_role.role_id)
+                            if role:
+                                await member.add_roles(role)
+                                logger.info(
+                                    f"✓ Restored role {role.name} to {member.name}"
+                                )
+                                discord_updated = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not restore role to {member.name}: {e}"
+                            )
+
+                else:
+                    logger.warning(
+                        f"✗ Member {user.user_id} not found in guild {user.guild_id}"
+                    )
+            else:
+                logger.warning(
+                    f"✗ Guild {user.guild_id} not found. Bot is in guilds: {[g.id for g in bot_instance.guilds]}"
+                )
+        else:
+            logger.warning(
+                f"✗ Bot instance not ready (instance: {bot_instance}, has user: {bot_instance.user if bot_instance else 'N/A'})"
+            )
+    except Exception as e:
+        logger.error(f"✗ Error updating Discord state for {user.username}: {e}")
+
+    logger.info(
+        f"User {user.username} (ID: {user.user_id}) restored by {current_user['username']}"
+    )
+
+    return {
+        "message": "User restored successfully",
         "user_id": user_id,
         "discord_updated": discord_updated,
     }
