@@ -728,6 +728,14 @@ class OnboardingApprovalView(discord.ui.View):
                         f"Could not send DM to {member.name} (DMs might be disabled)"
                     )
 
+                # Send onboarding completion notification
+                try:
+                    await interaction.client.send_notification(
+                        "onboarding_complete", member
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending onboarding completion notification: {e}")
+
             # Update the embed to show it's been approved
             original_embed = interaction.message.embeds[0]
             original_embed.color = discord.Color.green()

@@ -307,6 +307,82 @@ class VelaBot(commands.Bot):
             logger.error(f"Error replacing welcome message: {e}")
             return False, str(e), None
 
+    async def send_notification(
+        self, notification_type: str, member: discord.Member, **context
+    ):
+        """Send a notification based on configuration"""
+        try:
+            with next(get_session()) as session:
+                # Get guild configuration
+                guild_record = session.exec(
+                    select(Guild).where(Guild.guild_id == member.guild.id)
+                ).first()
+
+                if not guild_record or not guild_record.settings:
+                    return
+
+                # Check if notifications app is globally enabled
+                if not guild_record.settings.get("notifications_enabled", False):
+                    logger.debug(
+                        f"Notifications app is disabled for guild {member.guild.id}"
+                    )
+                    return
+
+                # Get notification configuration
+                notifications = guild_record.settings.get("notifications", {})
+                notification_config = notifications.get(notification_type, {})
+
+                # Check if this specific notification type is enabled
+                if not notification_config.get("enabled", False):
+                    return
+
+                # Get channel ID
+                channel_id = notification_config.get("channel_id")
+                if not channel_id:
+                    logger.warning(
+                        f"Notification {notification_type} enabled but no channel configured"
+                    )
+                    return
+
+                # Get channel
+                channel = member.guild.get_channel(int(channel_id))
+                if not channel:
+                    logger.error(
+                        f"Notification channel {channel_id} not found in guild {member.guild.id}"
+                    )
+                    return
+
+                # Get message template
+                message_template = notification_config.get(
+                    "message_template", f"Event: {notification_type}"
+                )
+
+                # Build context for template replacement
+                template_context = {
+                    "mention": member.mention,
+                    "username": member.name,
+                    "user_id": str(member.id),
+                    "guild_name": member.guild.name,
+                    "nickname": member.nick or member.name,
+                }
+
+                # Add any additional context passed to the function
+                template_context.update(context)
+
+                # Replace placeholders in message
+                message = message_template
+                for key, value in template_context.items():
+                    message = message.replace(f"{{{key}}}", str(value))
+
+                # Send notification
+                await channel.send(message)
+                logger.info(
+                    f"Sent {notification_type} notification for {member.name} in {member.guild.name}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error sending notification {notification_type}: {e}")
+
     async def on_member_join(self, member: discord.Member):
         """Handle new member joining"""
         try:
@@ -332,6 +408,9 @@ class VelaBot(commands.Bot):
                     logger.info(f"Member {member.name} joined {member.guild.name}")
                 else:
                     logger.info(f"Member {member.name} rejoined {member.guild.name}")
+
+            # Send member join notification (works for both new and rejoined members)
+            await self.send_notification("member_join", member)
 
         except Exception as e:
             logger.error(f"Error handling member join: {e}")

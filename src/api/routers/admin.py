@@ -107,6 +107,9 @@ async def apps_page(
             "member_support": {
                 "enabled": guild.settings.get("member_support_enabled", False)
             },
+            "notifications": {
+                "enabled": guild.settings.get("notifications_enabled", False)
+            },
         }
     else:
         # Default values if no guild settings exist
@@ -115,6 +118,7 @@ async def apps_page(
             "onboarding": {"enabled": False},
             "member_management": {"enabled": False},
             "member_support": {"enabled": False},
+            "notifications": {"enabled": False},
         }
 
     return templates.TemplateResponse(
@@ -257,6 +261,46 @@ async def commands_app_page(
             "title": "Slash Commands Configuration",
             "guild": guild,
             "roles": roles,
+            "current_user": current_user,
+        },
+    )
+
+
+@router.get("/apps/notify", response_class=HTMLResponse)
+async def notify_app_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Notifications app configuration page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    # Get notification channels
+    member_join_channel = session.exec(
+        select(Channel).where(
+            Channel.guild_id == current_user["guild_id"],
+            Channel.channel_type == "notification_member_join",
+        )
+    ).first()
+
+    onboarding_complete_channel = session.exec(
+        select(Channel).where(
+            Channel.guild_id == current_user["guild_id"],
+            Channel.channel_type == "notification_onboarding_complete",
+        )
+    ).first()
+
+    return templates.TemplateResponse(
+        "pages/apps/notify.html",
+        {
+            "request": request,
+            "title": "Notifications Configuration",
+            "guild": guild,
+            "member_join_channel": member_join_channel,
+            "onboarding_complete_channel": onboarding_complete_channel,
             "current_user": current_user,
         },
     )

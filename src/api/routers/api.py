@@ -942,6 +942,7 @@ async def toggle_app(
         "member_management": "member_management_enabled",
         "member_support": "member_support_enabled",
         "slash_commands": "slash_commands_enabled",
+        "notifications": "notifications_enabled",
     }
 
     setting_key = app_settings_map.get(app_name)
@@ -1155,3 +1156,315 @@ async def save_nickname_template(
     logger.info(f"Nickname template updated by {current_user['username']}: {template}")
 
     return {"message": "Template saved successfully"}
+
+
+# ============================================================================
+# NOTIFICATION ENDPOINTS
+# ============================================================================
+
+
+@router.post("/notify/toggle")
+async def toggle_notification(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Toggle a notification type on/off"""
+    data = await request.json()
+    notification_type = data.get("notification_type")
+    enabled = data.get("enabled", False)
+
+    if not notification_type:
+        raise HTTPException(400, "Notification type is required")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Initialize settings if needed
+    if guild.settings is None:
+        guild.settings = {}
+
+    if "notifications" not in guild.settings:
+        guild.settings["notifications"] = {}
+
+    if notification_type not in guild.settings["notifications"]:
+        guild.settings["notifications"][notification_type] = {}
+
+    guild.settings["notifications"][notification_type]["enabled"] = enabled
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action=f"notification_{notification_type}_{'enabled' if enabled else 'disabled'}",
+        details={"notification_type": notification_type, "enabled": enabled},
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(
+        f"Notification {notification_type} {'enabled' if enabled else 'disabled'} by {current_user['username']}"
+    )
+
+    return {"message": f"Notification {notification_type} {'enabled' if enabled else 'disabled'}"}
+
+
+@router.post("/notify/channel")
+async def save_notification_channel(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Save notification channel configuration"""
+    data = await request.json()
+    notification_type = data.get("notification_type")
+    channel_id = data.get("channel_id")
+    channel_name = data.get("channel_name")
+
+    if not notification_type or not channel_id:
+        raise HTTPException(400, "Notification type and channel ID are required")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Store channel in database
+    channel_type = f"notification_{notification_type}"
+
+    # Check if channel already exists
+    existing_channel = session.exec(
+        select(Channel).where(
+            Channel.guild_id == current_user["guild_id"],
+            Channel.channel_type == channel_type,
+        )
+    ).first()
+
+    if existing_channel:
+        # Update existing channel
+        existing_channel.channel_id = int(channel_id)
+        if channel_name:
+            existing_channel.name = channel_name
+    else:
+        # Create new channel
+        new_channel = Channel(
+            guild_id=current_user["guild_id"],
+            channel_id=int(channel_id),
+            name=channel_name or f"Notification Channel",
+            channel_type=channel_type,
+        )
+        session.add(new_channel)
+
+    # Also store in guild settings for easy access
+    if guild.settings is None:
+        guild.settings = {}
+
+    if "notifications" not in guild.settings:
+        guild.settings["notifications"] = {}
+
+    if notification_type not in guild.settings["notifications"]:
+        guild.settings["notifications"][notification_type] = {}
+
+    guild.settings["notifications"][notification_type]["channel_id"] = int(channel_id)
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action=f"notification_{notification_type}_channel_set",
+        details={
+            "notification_type": notification_type,
+            "channel_id": channel_id,
+            "channel_name": channel_name,
+        },
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(
+        f"Notification channel for {notification_type} set to {channel_id} by {current_user['username']}"
+    )
+
+    return {"message": "Channel saved successfully"}
+
+
+@router.post("/notify/config")
+async def save_notification_config(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Save notification configuration (message template)"""
+    data = await request.json()
+    notification_type = data.get("notification_type")
+    message_template = data.get("message_template")
+
+    if not notification_type or not message_template:
+        raise HTTPException(400, "Notification type and message template are required")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Initialize settings if needed
+    if guild.settings is None:
+        guild.settings = {}
+
+    if "notifications" not in guild.settings:
+        guild.settings["notifications"] = {}
+
+    if notification_type not in guild.settings["notifications"]:
+        guild.settings["notifications"][notification_type] = {}
+
+    guild.settings["notifications"][notification_type][
+        "message_template"
+    ] = message_template
+
+    # Force SQLAlchemy to detect the change
+    from sqlalchemy.orm import attributes
+
+    attributes.flag_modified(guild, "settings")
+
+    # Log the action
+    audit_log = AuditLog(
+        guild_id=current_user["guild_id"],
+        user_id=current_user["discord_id"],
+        discord_username=current_user["username"],
+        action=f"notification_{notification_type}_config_updated",
+        details={
+            "notification_type": notification_type,
+            "message_template": message_template,
+        },
+    )
+    session.add(audit_log)
+    session.commit()
+
+    logger.info(
+        f"Notification config for {notification_type} updated by {current_user['username']}"
+    )
+
+    return {"message": "Configuration saved successfully"}
+
+
+@router.post("/notify/test")
+async def test_notification(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Send a test notification"""
+    data = await request.json()
+    notification_type = data.get("notification_type")
+
+    if not notification_type:
+        raise HTTPException(400, "Notification type is required")
+
+    # Get guild
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+
+    # Get notification config
+    if (
+        not guild.settings
+        or "notifications" not in guild.settings
+        or notification_type not in guild.settings["notifications"]
+    ):
+        raise HTTPException(400, "Notification not configured")
+
+    notification_config = guild.settings["notifications"][notification_type]
+
+    if not notification_config.get("enabled", False):
+        raise HTTPException(400, "Notification is not enabled")
+
+    channel_id = notification_config.get("channel_id")
+    if not channel_id:
+        raise HTTPException(400, "Notification channel not configured")
+
+    message_template = notification_config.get("message_template", "Test notification")
+
+    # Get bot instance
+    bot = getattr(request.app.state, "bot", None)
+    logger.info(f"Bot instance: {bot}, Bot ready: {bot.is_ready() if bot else 'N/A'}")
+
+    if not bot or not bot.is_ready():
+        raise HTTPException(503, "Bot is not connected to Discord")
+
+    logger.info(
+        f"Test notification requested for {notification_type} by {current_user['username']}"
+    )
+
+    try:
+        # Get the Discord guild
+        logger.info(f"Getting guild {current_user['guild_id']}")
+        discord_guild = bot.get_guild(current_user["guild_id"])
+        if not discord_guild:
+            logger.error(f"Guild {current_user['guild_id']} not found in Discord")
+            raise HTTPException(404, "Guild not found in Discord")
+
+        logger.info(f"Guild found: {discord_guild.name}")
+
+        # Get the Discord member who is testing (the current user)
+        logger.info(f"Getting member {current_user['discord_id']}")
+        try:
+            discord_member = await discord_guild.fetch_member(current_user["discord_id"])
+        except Exception as e:
+            logger.error(f"Member {current_user['discord_id']} not found in guild: {e}")
+            raise HTTPException(404, "You are not a member of this guild")
+
+        logger.info(f"Member found: {discord_member.name}")
+
+        # Send the notification using the bot's method
+        logger.info(f"Sending notification: {notification_type}")
+        await bot.send_notification(notification_type, discord_member)
+        logger.info(f"Notification sent successfully")
+
+        # Log the action
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=current_user["discord_id"],
+            discord_username=current_user["username"],
+            action=f"notification_{notification_type}_test",
+            details={"notification_type": notification_type},
+        )
+        session.add(audit_log)
+        session.commit()
+
+        return {
+            "message": "Test notification sent successfully",
+            "channel_id": channel_id,
+            "template": message_template,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending test notification: {e}")
+        raise HTTPException(500, f"Error sending test notification: {str(e)}")
