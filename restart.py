@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# fmt: off
 """
 Restart script that kills any existing process on port 8000 before starting
 """

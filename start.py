@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# fmt: off
 """Quick start script for Vela"""
 
 import os

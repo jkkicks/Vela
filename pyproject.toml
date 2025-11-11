@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 88
+target-version = ['py313']
+# Exclude startup scripts to preserve signal handling functionality
+extend-exclude = '.*(start|restart)\.py$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+]
