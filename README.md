@@ -1,6 +1,20 @@
-# Vela v2.0
+# Vela
+
+[![GitHub Release](https://img.shields.io/github/v/release/jkkicks/Vela?include_prereleases)](https://github.com/jkkicks/Vela/releases)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/yourname/vela)
 
 A modern Discord onboarding bot with a web management interface, built with FastAPI, SQLModel, and HTMX.
+
+## What's New
+
+- **Graceful Shutdown Handling** - Proper signal handling for both local development and Docker deployments
+- **Onboarding Management from Web UI** - Approve or demote user onboarding status directly from the dashboard
+- **Python 3.13+ Support** - Full compatibility with latest Python versions
+- **Enhanced Notifications** - Customizable Discord event notifications with toggle controls
+- **Improved Documentation** - Reorganized docs with dedicated sections for development, deployment, and API reference
+- **28+ API Endpoints** - Comprehensive REST API for all bot operations
 
 ## Features
 
@@ -10,22 +24,27 @@ A modern Discord onboarding bot with a web management interface, built with Fast
   - Role assignment upon onboarding completion
   - Persistent button/modal interactions
   - Comprehensive audit logging
+  - Graceful shutdown handling for both local and Docker environments
 
 - **Web Management Interface**
   - Discord OAuth authentication
-  - User management dashboard
+  - User management dashboard with approve/demote onboarding status
   - Bot configuration panel
   - Real-time audit logs
   - Multi-guild support (built-in from day one)
   - Export member data (CSV/JSON)
+  - Welcome message customization with notification controls
+  - Command management interface
 
 - **Technical Features**
+  - Full Python 3.13+ support with discord.py 2.4.0+
   - Dual database support (SQLite/PostgreSQL)
   - HTMX for dynamic UI without JavaScript complexity
-  - Docker containerization
+  - Docker containerization with proper signal handling (tini)
   - CI/CD with GitHub Actions
   - Fully typed with SQLModel
-  - Comprehensive logging
+  - Comprehensive structured logging with graceful shutdown
+  - Built-in notification system for Discord events
 
 ## 📖 Documentation
 
@@ -33,14 +52,18 @@ For detailed documentation, visit the [docs folder](docs/README.md):
 - [Quick Start Guide](docs/guides/quick-start.md) - Get running in 5 minutes
 - [Installation Guide](docs/guides/installation.md) - Detailed setup instructions
 - [Discord Setup](docs/guides/discord-setup.md) - Bot and OAuth configuration
-- [Development Guide](docs/development/project-structure.md) - Understanding the codebase
+- [Development Guide](docs/development/DEVELOPMENT_SETUP.md) - Python 3.13+ setup and dependencies
+- [Project Structure](docs/development/project-structure.md) - Understanding the codebase
+- [Shutdown Handling](docs/development/SHUTDOWN_HANDLING.md) - Graceful shutdown procedures
 - [API Reference](docs/api/) - Complete API documentation
+- [Docker Deployment](docs/deployment/docker.md) - Container deployment guide
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.9+ (including Python 3.13+)
+- Python 3.9 or higher (fully supports Python 3.13+)
+- discord.py 2.4.0+ (required for Python 3.13 compatibility)
 - Discord Bot Token ([Create one here](https://discord.com/developers/applications))
 - Discord OAuth Application (for web interface login)
 
@@ -112,12 +135,17 @@ For detailed documentation, visit the [docs folder](docs/README.md):
 
 6. **Run the application**
    ```bash
+   # Direct start:
    python -m src.main
-   # Or use the startup script:
+
+   # Using startup script (handles venv, checks dependencies):
    python start.py
+
+   # Restart (kills existing process on port 8000 first):
+   python restart.py
    ```
 
-6. **Complete initial setup**
+7. **Complete initial setup**
    - Visit http://localhost:8000/setup
    - Enter your Discord bot token and admin credentials
    - Configure your first guild
@@ -173,6 +201,8 @@ API_HOST=0.0.0.0
    docker build -t vela .
    docker run -d -p 8000:8000 --env-file .env vela
    ```
+
+**Note:** The Docker image includes tini as an init system for proper signal handling and graceful shutdowns. The container will properly handle SIGTERM signals for clean termination.
 
 ### Manual Deployment
 
@@ -237,16 +267,28 @@ Access the web interface at `http://localhost:8000`
 **Available Pages:**
 - `/` - Home page
 - `/dashboard` - Statistics overview
-- `/admin/users` - User management
+- `/admin/users` - User management (with approve/demote onboarding controls)
 - `/admin/config` - Bot configuration
 - `/admin/logs` - Audit logs
 - `/admin/guilds` - Multi-guild management (super admin only)
+- `/apps/onboarding` - Onboarding workflow configuration
+- `/apps/welcome` - Welcome message customization
+- `/apps/notify` - Notification settings for Discord events
+- `/apps/commands` - Command configuration
 
 ### API Documentation
 
 Interactive API documentation available at:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+**Key API Endpoints (28+ total):**
+- User Management: `GET/POST /users`, `GET/DELETE /users/{user_id}`
+- Onboarding Control: `POST /users/{user_id}/approve`, `POST /users/{user_id}/demote`
+- Guild Management: `GET /guilds`, `POST /settings/{guild_id}`
+- Notifications: `POST /notifications/toggle`, `POST /notifications/channel`
+- Data Export: `GET /export` (CSV/JSON formats)
+- Commands: `GET/POST /commands/{guild_id}`
 
 ## Development
 
@@ -322,6 +364,8 @@ black src/
 ruff check src/
 ```
 
+**Note:** `start.py` and `restart.py` are excluded from Black formatting to preserve critical signal handling code. These files contain specific formatting required for proper shutdown procedures.
+
 ### Database Migrations
 
 ```bash
@@ -355,6 +399,8 @@ alembic downgrade -1
 - **Multi-guild Ready**: Architecture supports multiple Discord servers
 - **Security First**: Encrypted tokens, OAuth authentication, audit logging
 - **Progressive Enhancement**: HTMX for interactivity without JavaScript complexity
+- **Graceful Operations**: Proper signal handling and shutdown procedures for both local and containerized environments
+- **Modern Python**: Full support for Python 3.13+ with async/await patterns
 
 ## Migration from v1.0
 

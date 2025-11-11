@@ -131,7 +131,7 @@ def check_static_assets():
 def main():
     print("""
 ========================================
-           Vela v2.0 Startup
+           Vela Startup
   Discord Onboarding Bot with Web UI
 ========================================
     """)

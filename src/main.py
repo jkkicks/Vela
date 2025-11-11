@@ -190,7 +190,7 @@ async def main():
     print(
         """
     ========================================
-               Vela v2.0.0
+                   Vela
       Discord Onboarding Bot with Web UI
     ========================================
     """
