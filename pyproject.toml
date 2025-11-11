@@ -1,12 +1,12 @@
 [tool.black]
 line-length = 88
-target-version = ['py313']
+target-version = ['py312']  # py313 not yet supported in Black 23.12.1
 # Exclude startup scripts to preserve signal handling functionality
 extend-exclude = '.*(start|restart)\.py$'
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py312"  # Match Black's target version
 exclude = [
     ".git",
     ".venv",
