@@ -108,11 +108,11 @@ class UtilityCog(commands.Cog):
             color=discord.Color.green(),
         )
 
-        embed.add_field(name="Version", value="2.0.0", inline=True)
-        embed.add_field(name="Framework", value="discord.py 2.3.2", inline=True)
+        embed.add_field(name="Framework", value="discord.py 2.3.2+", inline=True)
         embed.add_field(
             name="Database", value="SQLModel + SQLite/PostgreSQL", inline=True
         )
+        embed.add_field(name="Python", value="3.9+", inline=True)
 
         embed.set_footer(text="Built with ❤️ using Python")
 

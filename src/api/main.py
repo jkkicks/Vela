@@ -107,7 +107,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Vela Admin Panel",
     description="Web interface for managing Vela Discord bot",
-    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -237,7 +236,7 @@ async def dashboard(
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "version": "2.0.0"}
+    return {"status": "healthy"}
 
 
 @app.exception_handler(404)

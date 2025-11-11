@@ -275,7 +275,7 @@ Step 3: Complete the Onboarding procedure to unlock the rest of the server.
 Enjoy your stay!</pre>
             </div>
 
-            {% if guild and guild.settings.get('show_onboarding_button', True) %}
+            {% if guild and guild.settings.get('onboarding_enabled', True) %}
             <div class="mt-3">
                 <button class="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700">
                     Complete Onboarding
@@ -321,13 +321,13 @@ Enjoy your stay!</pre>
         <h3 class="text-md font-semibold text-gray-900 dark:text-white mb-3">Additional Settings</h3>
 
         <div class="space-y-4">
-            <!-- Enable Welcome Messages -->
+            <!-- Auto-Update Welcome Message -->
             <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <label class="flex items-center justify-between cursor-pointer">
                     <div>
-                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Enable Welcome Messages</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Auto-Update Welcome Message</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Automatically post welcome message when new members join
+                            Automatically update the Discord message when you save changes
                         </p>
                     </div>
                     <input
@@ -340,43 +340,6 @@ Enjoy your stay!</pre>
                 </label>
             </div>
 
-            <!-- Show Onboarding Button -->
-            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <label class="flex items-center justify-between cursor-pointer">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Show Onboarding Button</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Include a button in the welcome message for members to complete onboarding
-                        </p>
-                    </div>
-                    <input
-                        type="checkbox"
-                        id="show_onboarding_button"
-                        onchange="updateSetting('show_onboarding_button', this.checked)"
-                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        {% if guild and guild.settings.get('show_onboarding_button', True) %}checked{% endif %}
-                    >
-                </label>
-            </div>
-
-            <!-- Delete Duplicate Messages -->
-            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <label class="flex items-center justify-between cursor-pointer">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Single Message Mode</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Only keep one welcome message in the channel (delete duplicates)
-                        </p>
-                    </div>
-                    <input
-                        type="checkbox"
-                        id="single_welcome_message"
-                        onchange="updateSetting('single_welcome_message', this.checked)"
-                        class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        {% if guild and guild.settings.get('single_welcome_message', True) %}checked{% endif %}
-                    >
-                </label>
-            </div>
         </div>
     </div>
 
@@ -384,7 +347,7 @@ Enjoy your stay!</pre>
     <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
         <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">Need Help?</h3>
         <p class="text-sm text-blue-700 dark:text-blue-300">
-            The welcome system automatically posts a message in your designated channel when new members join. Make sure your bot has permission to send messages and embeds in the welcome channel. You can customize the message content and choose between embed or plain text format using the Message Content section above.
+            The welcome system manages the generated "Welcome Message". This message is static and gives members a starting point, as well as a place for interractive buttons to attach. You can customize the message using the Message Content section above.
         </p>
     </div>
 </div>
@@ -709,7 +672,21 @@ async function saveWelcomeMessage() {
         });
 
         if (response.ok) {
-            alert('Welcome message updated successfully!');
+            const result = await response.json();
+
+            // Check if auto-update is enabled
+            const autoUpdateEnabled = document.getElementById('welcome_enabled').checked;
+
+            if (autoUpdateEnabled && result.auto_updated) {
+                alert('Welcome message configuration saved and Discord message updated automatically!');
+            } else if (autoUpdateEnabled && !result.auto_updated && result.auto_update_error) {
+                alert(`Welcome message configuration saved, but auto-update failed:\n\n${result.auto_update_error}`);
+            } else if (autoUpdateEnabled && !result.auto_updated) {
+                alert('Welcome message configuration saved, but Discord message could not be auto-updated. You may need to use the Update/Replace buttons.');
+            } else {
+                alert('Welcome message configuration saved successfully!');
+            }
+
             window.location.reload();
         } else {
             const error = await response.json();

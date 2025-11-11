@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Quick start script for Vela"""
+# fmt: off
 
 import os
 import sys
 import subprocess
-import signal
-import atexit
 from pathlib import Path
 
 def is_venv():
@@ -115,7 +114,7 @@ def check_env():
             lines.append(f'ENCRYPTION_KEY={key}')
 
         env_path.write_text('\n'.join(lines))
-        print(f"[OK] Added ENCRYPTION_KEY to .env")
+        print("[OK] Added ENCRYPTION_KEY to .env")
 
     return True
 
@@ -133,7 +132,7 @@ def check_static_assets():
 def main():
     print("""
 ========================================
-           Vela v2.0 Startup
+           Vela Startup
   Discord Onboarding Bot with Web UI
 ========================================
     """)
@@ -155,77 +154,23 @@ def main():
     print("\nStarting Vela...")
     print("-" * 40)
 
-    # Start the application with proper process management
-    process = None
-
-    def cleanup_process():
-        """Cleanup function to ensure the process is terminated"""
-        nonlocal process
-        if process and process.poll() is None:
-            if sys.platform == 'win32':
-                # On Windows, use taskkill to force kill the process tree
-                subprocess.run(['taskkill', '/F', '/T', '/PID', str(process.pid)],
-                             capture_output=True, check=False)
-            else:
-                # On Unix, terminate the process group
-                try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                except:
-                    process.terminate()
-
-            # Give it a moment to terminate
-            try:
-                process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-
-    def signal_handler(signum, frame):
-        """Handle Ctrl+C and other signals"""
-        print("\n\nReceived shutdown signal...")
-        cleanup_process()
-        sys.exit(0)
-
-    # Register signal handlers
-    if sys.platform == 'win32':
-        # Windows signal handling
-        signal.signal(signal.SIGBREAK, signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
-    else:
-        # Unix signal handling
-        signal.signal(signal.SIGTERM, signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
-
-    # Register cleanup on exit
-    atexit.register(cleanup_process)
-
+    # Start the application
     try:
-        # Use subprocess.Popen for better process control
-        if sys.platform == 'win32':
-            # On Windows, don't create a new process group to allow Ctrl+C to work
-            process = subprocess.Popen(
-                [sys.executable, '-m', 'src.main']
-            )
-        else:
-            # On Unix, create a new process group
-            process = subprocess.Popen(
-                [sys.executable, '-m', 'src.main'],
-                preexec_fn=os.setsid
-            )
+        # Force unbuffered output
+        env = os.environ.copy()
+        env['PYTHONUNBUFFERED'] = '1'
 
-        # Wait for the process to complete
-        process.wait()
-
+        # Use subprocess.run() which handles signals properly
+        result = subprocess.run([sys.executable, '-m', 'src.main'], env=env)
+        sys.exit(result.returncode)
     except KeyboardInterrupt:
-        print("\n\nShutting down...")
-        cleanup_process()
+        # This will be called after the child process has exited
+        print("\n[OK] Vela stopped by user", flush=True)
         sys.exit(0)
-    except Exception as e:
-        print(f"\n[ERROR] {e}")
-        cleanup_process()
-        sys.exit(1)
-    finally:
-        cleanup_process()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[OK] Vela startup cancelled", flush=True)
+        sys.exit(0)

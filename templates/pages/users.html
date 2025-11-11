@@ -39,7 +39,7 @@
                     Onboarded
                 </dt>
                 <dd class="mt-1 text-3xl font-semibold text-green-600">
-                    {{ users|selectattr('onboarding_status', 'gt', 0)|list|length }}
+                    {{ users|selectattr('onboarding_status', 'eq', 1)|list|length }}
                 </dd>
             </div>
         </div>
@@ -77,6 +77,8 @@
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="onboarded">Onboarded</option>
+                    <option value="demoted">Demoted</option>
+                    <option value="denied">Denied</option>
                 </select>
             </div>
         </div>
@@ -132,7 +134,7 @@
                         data-username="{{ user.username|lower }}"
                         data-firstname="{{ (user.firstname or '')|lower }}"
                         data-lastname="{{ (user.lastname or '')|lower }}"
-                        data-status="{% if user.onboarding_status > 0 %}onboarded{% else %}pending{% endif %}">
+                        data-status="{% if user.onboarding_status == 1 %}onboarded{% elif user.onboarding_status == 2 %}demoted{% elif user.onboarding_status == 0 %}pending{% else %}denied{% endif %}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10">
@@ -169,19 +171,33 @@
                             <div class="text-xs text-gray-500 dark:text-gray-400">ID: {{ user.user_id }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if user.onboarding_status > 0 %}
+                            {% if user.onboarding_status == 1 %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                 </svg>
                                 Onboarded
                             </span>
-                            {% else %}
+                            {% elif user.onboarding_status == 2 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7 8.586 5.707 7.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                Demoted
+                            </span>
+                            {% elif user.onboarding_status == 0 %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                                 </svg>
                                 Pending
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                                Denied
                             </span>
                             {% endif %}
                         </td>
@@ -199,6 +215,28 @@
                             >
                                 View
                             </button>
+                            {% if user.onboarding_status == 0 %}
+                            <button
+                                onclick="approveUser({{ user.id }}, '{{ user.username }}')"
+                                class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                            >
+                                Approve
+                            </button>
+                            {% elif user.onboarding_status == 1 %}
+                            <button
+                                onclick="demoteUser({{ user.id }}, '{{ user.username }}')"
+                                class="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 mr-3"
+                            >
+                                Demote
+                            </button>
+                            {% elif user.onboarding_status == 2 %}
+                            <button
+                                onclick="restoreUser({{ user.id }}, '{{ user.username }}')"
+                                class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                            >
+                                Restore
+                            </button>
+                            {% endif %}
                             <button
                                 onclick="deleteUser({{ user.id }}, '{{ user.username }}')"
                                 class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
@@ -280,9 +318,13 @@ async function viewUser(userId) {
                         <p class="text-sm text-gray-500 dark:text-gray-400">@${user.username}</p>
                     </div>
                     <div class="ml-auto">
-                        ${user.onboarding_status > 0
+                        ${user.onboarding_status === 1
                             ? '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Onboarded</span>'
-                            : '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>'
+                            : user.onboarding_status === 2
+                            ? '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">Demoted</span>'
+                            : user.onboarding_status === 0
+                            ? '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>'
+                            : '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Denied</span>'
                         }
                     </div>
                 </div>
@@ -385,6 +427,99 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function approveUser(userId, username) {
+    if (confirm(`Are you sure you want to approve ${username}'s onboarding request?\n\nThis will:\n• Mark them as onboarded\n• Update their Discord nickname (if configured)\n• Add their onboarded role (if configured)\n• Send them a DM notification`)) {
+        fetch(`/api/users/${userId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.detail || 'Failed to approve user');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.discord_updated) {
+                alert(`${username} approved successfully!\n\nDiscord nickname and role have been updated.`);
+            } else {
+                alert(`${username} approved in database.\n\nNote: Discord updates could not be applied automatically.\nYou may need to manually update their role/nickname in Discord.`);
+            }
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Error approving user: ${error.message}`);
+        });
+    }
+}
+
+function demoteUser(userId, username) {
+    if (confirm(`Are you sure you want to demote ${username}?\n\nThis will:\n• Remove their onboarded role\n• Reset their Discord nickname\n• Keep their data in the database\n• They will show as "Demoted" status`)) {
+        fetch(`/api/users/${userId}/demote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.detail || 'Failed to demote user');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.discord_updated) {
+                alert(`${username} demoted successfully!\n\nDiscord nickname and role have been removed.`);
+            } else {
+                alert(`${username} demoted in database.\n\nNote: Discord updates could not be applied automatically.\nYou may need to manually remove their role/nickname in Discord.`);
+            }
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Error demoting user: ${error.message}`);
+        });
+    }
+}
+
+function restoreUser(userId, username) {
+    if (confirm(`Are you sure you want to restore ${username}?\n\nThis will:\n• Mark them as onboarded again\n• Restore their Discord nickname (if configured)\n• Add their onboarded role (if configured)`)) {
+        fetch(`/api/users/${userId}/restore`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.detail || 'Failed to restore user');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.discord_updated) {
+                alert(`${username} restored successfully!\n\nDiscord nickname and role have been restored.`);
+            } else {
+                alert(`${username} restored in database.\n\nNote: Discord updates could not be applied automatically.\nYou may need to manually restore their role/nickname in Discord.`);
+            }
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Error restoring user: ${error.message}`);
+        });
+    }
+}
 
 function deleteUser(userId, username) {
     if (confirm(`Are you sure you want to remove ${username}?\n\nThis will:\n• Delete all their data from the database\n• Reset their Discord nickname\n• Remove their onboarded role`)) {

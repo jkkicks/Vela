@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/admin/apps" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Configure automated notifications for server events in {{ guild.guild_name if guild else 'your server' }}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+            <span class="px-3 py-1 text-sm rounded-full {% if guild and guild.settings.get('notifications_enabled', True) %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                {% if guild and guild.settings.get('notifications_enabled', True) %}Enabled{% else %}Disabled{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Member Join Notification -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <!-- Header (always visible) -->
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center flex-1">
+                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Member Join</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Send a notification when someone joins the server</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 ml-4">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="sr-only peer"
+                            id="memberJoinEnabled"
+                            onchange="toggleNotification('member_join', this.checked)"
+                            {% if guild and guild.settings.get('notifications', {}).get('member_join', {}).get('enabled', False) %}checked{% endif %}
+                        >
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                    <button
+                        onclick="toggleExpand('memberJoin')"
+                        class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                        aria-label="Expand configuration"
+                    >
+                        <svg id="memberJoinExpandIcon" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collapsible Configuration -->
+        <div id="memberJoinConfig" class="hidden border-t border-gray-200 dark:border-gray-700 p-6 space-y-4 {% if not guild or not guild.settings.get('notifications', {}).get('member_join', {}).get('enabled', False) %}opacity-50 pointer-events-none{% endif %}">
+            <!-- Channel Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notification Channel
+                </label>
+                {% if member_join_channel %}
+                <div class="flex items-center mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ member_join_channel.name }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(ID: {{ member_join_channel.channel_id }})</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Loading State -->
+                <div id="memberJoinChannelLoadingState" class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Loading channels from Discord...</p>
+                </div>
+
+                <!-- Channel Selection -->
+                <div id="memberJoinChannelSelectionState" class="hidden">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <select
+                                id="memberJoinChannelSelect"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">-- Select a channel --</option>
+                            </select>
+                        </div>
+                        <button
+                            onclick="saveNotificationChannel('member_join')"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error/Manual State -->
+                <div id="memberJoinChannelErrorState" class="hidden">
+                    <div class="p-3 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-3">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200" id="memberJoinChannelErrorMessage"></p>
+                        <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Make sure the bot is running and connected to Discord, then refresh the page.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <input
+                                type="text"
+                                id="memberJoinChannelIdInput"
+                                placeholder="Enter Channel ID (e.g. 1234567890123456789)"
+                                value="{{ member_join_channel.channel_id if member_join_channel else '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <button
+                            onclick="saveNotificationChannelManual('member_join')"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Right-click a channel in Discord and select "Copy Channel ID"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Message Template -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Message Template
+                </label>
+                <textarea
+                    id="memberJoinMessage"
+                    rows="3"
+                    placeholder="Welcome {mention}! We're glad you joined {guild_name}."
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >{{ guild.settings.get('notifications', {}).get('member_join', {}).get('message_template', 'Welcome {mention}! We\'re glad you joined {guild_name}.') if guild else '' }}</textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Available placeholders: {mention}, {username}, {user_id}, {guild_name}
+                </p>
+            </div>
+
+            <!-- Save and Test Buttons -->
+            <div class="flex gap-3">
+                <button
+                    onclick="saveNotificationConfig('member_join')"
+                    class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Save Configuration
+                </button>
+                <button
+                    onclick="testNotification('member_join')"
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Send Test
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Complete Notification -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <!-- Header (always visible) -->
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center flex-1">
+                    <div class="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Onboarding Complete</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Send a notification when someone completes onboarding</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 ml-4">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="sr-only peer"
+                            id="onboardingCompleteEnabled"
+                            onchange="toggleNotification('onboarding_complete', this.checked)"
+                            {% if guild and guild.settings.get('notifications', {}).get('onboarding_complete', {}).get('enabled', False) %}checked{% endif %}
+                        >
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                    </label>
+                    <button
+                        onclick="toggleExpand('onboardingComplete')"
+                        class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                        aria-label="Expand configuration"
+                    >
+                        <svg id="onboardingCompleteExpandIcon" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collapsible Configuration -->
+        <div id="onboardingCompleteConfig" class="hidden border-t border-gray-200 dark:border-gray-700 p-6 space-y-4 {% if not guild or not guild.settings.get('notifications', {}).get('onboarding_complete', {}).get('enabled', False) %}opacity-50 pointer-events-none{% endif %}">
+            <!-- Channel Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notification Channel
+                </label>
+                {% if onboarding_complete_channel %}
+                <div class="flex items-center mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">#{{ onboarding_complete_channel.name }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(ID: {{ onboarding_complete_channel.channel_id }})</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Loading State -->
+                <div id="onboardingCompleteChannelLoadingState" class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Loading channels from Discord...</p>
+                </div>
+
+                <!-- Channel Selection -->
+                <div id="onboardingCompleteChannelSelectionState" class="hidden">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <select
+                                id="onboardingCompleteChannelSelect"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">-- Select a channel --</option>
+                            </select>
+                        </div>
+                        <button
+                            onclick="saveNotificationChannel('onboarding_complete')"
+                            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error/Manual State -->
+                <div id="onboardingCompleteChannelErrorState" class="hidden">
+                    <div class="p-3 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-3">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200" id="onboardingCompleteChannelErrorMessage"></p>
+                        <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Make sure the bot is running and connected to Discord, then refresh the page.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <input
+                                type="text"
+                                id="onboardingCompleteChannelIdInput"
+                                placeholder="Enter Channel ID (e.g. 1234567890123456789)"
+                                value="{{ onboarding_complete_channel.channel_id if onboarding_complete_channel else '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <button
+                            onclick="saveNotificationChannelManual('onboarding_complete')"
+                            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 whitespace-nowrap"
+                        >
+                            Save Channel
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Right-click a channel in Discord and select "Copy Channel ID"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Message Template -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Message Template
+                </label>
+                <textarea
+                    id="onboardingCompleteMessage"
+                    rows="3"
+                    placeholder="🎉 {mention} has completed onboarding! Welcome to the team!"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >{{ guild.settings.get('notifications', {}).get('onboarding_complete', {}).get('message_template', '🎉 {mention} has completed onboarding! Welcome to the team!') if guild else '' }}</textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Available placeholders: {mention}, {username}, {nickname}, {user_id}, {guild_name}
+                </p>
+            </div>
+
+            <!-- Save and Test Buttons -->
+            <div class="flex gap-3">
+                <button
+                    onclick="saveNotificationConfig('onboarding_complete')"
+                    class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                    Save Configuration
+                </button>
+                <button
+                    onclick="testNotification('onboarding_complete')"
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Send Test
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">About Notifications</h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Notifications are sent automatically when events occur</li>
+                        <li>Use placeholders to personalize messages</li>
+                        <li>Test notifications to preview how they'll look</li>
+                        <li>Make sure the bot has permission to send messages in the selected channels</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load channels on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadChannels('memberJoin');
+    await loadChannels('onboardingComplete');
+});
+
+function toggleExpand(notificationType) {
+    const config = document.getElementById(`${notificationType}Config`);
+    const icon = document.getElementById(`${notificationType}ExpandIcon`);
+
+    if (config.classList.contains('hidden')) {
+        // Expand
+        config.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        // Collapse
+        config.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+async function loadChannels(notificationType) {
+    const prefix = notificationType === 'memberJoin' ? 'memberJoin' : 'onboardingComplete';
+    const loadingState = document.getElementById(`${prefix}ChannelLoadingState`);
+    const selectionState = document.getElementById(`${prefix}ChannelSelectionState`);
+    const errorState = document.getElementById(`${prefix}ChannelErrorState`);
+    const select = document.getElementById(`${prefix}ChannelSelect`);
+
+    try {
+        const response = await fetch('/api/discord/channels');
+        const data = await response.json();
+
+        if (data.error || !data.channels || data.channels.length === 0) {
+            // Show error and fall back to manual input
+            loadingState.classList.add('hidden');
+            errorState.classList.remove('hidden');
+            document.getElementById(`${prefix}ChannelErrorMessage`).textContent =
+                data.error || 'No channels found. You can enter a channel ID manually below.';
+        } else {
+            // Populate select
+            select.innerHTML = '<option value="">-- Select a channel --</option>';
+
+            for (const channel of data.channels) {
+                const option = document.createElement('option');
+                option.value = channel.id;
+                option.textContent = `#${channel.name}`;
+                select.appendChild(option);
+            }
+
+            // Show selection state
+            loadingState.classList.add('hidden');
+            selectionState.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading channels:', error);
+        loadingState.classList.add('hidden');
+        errorState.classList.remove('hidden');
+        document.getElementById(`${prefix}ChannelErrorMessage`).textContent =
+            'Could not load channels from Discord. You can enter a channel ID manually below.';
+    }
+}
+
+function toggleNotification(notificationType, enabled) {
+    const config = document.getElementById(`${notificationType === 'member_join' ? 'memberJoin' : 'onboardingComplete'}Config`);
+
+    if (enabled) {
+        config.classList.remove('opacity-50', 'pointer-events-none');
+    } else {
+        config.classList.add('opacity-50', 'pointer-events-none');
+    }
+
+    // Save the enabled state
+    saveNotificationToggle(notificationType, enabled);
+}
+
+async function saveNotificationToggle(notificationType, enabled) {
+    try {
+        const response = await fetch('/api/notify/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                notification_type: notificationType,
+                enabled: enabled
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save notification toggle');
+        }
+
+        console.log(`${notificationType} ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to save notification toggle');
+    }
+}
+
+async function saveNotificationChannel(notificationType) {
+    const prefix = notificationType === 'member_join' ? 'memberJoin' : 'onboardingComplete';
+    const select = document.getElementById(`${prefix}ChannelSelect`);
+    const channelId = select.value;
+
+    if (!channelId) {
+        alert('Please select a channel');
+        return;
+    }
+
+    await saveChannel(notificationType, channelId, select.options[select.selectedIndex].text.substring(1));
+}
+
+async function saveNotificationChannelManual(notificationType) {
+    const prefix = notificationType === 'member_join' ? 'memberJoin' : 'onboardingComplete';
+    const input = document.getElementById(`${prefix}ChannelIdInput`);
+    const channelId = input.value.trim();
+
+    if (!channelId) {
+        alert('Please enter a channel ID');
+        return;
+    }
+
+    await saveChannel(notificationType, channelId, null);
+}
+
+async function saveChannel(notificationType, channelId, channelName) {
+    try {
+        const response = await fetch('/api/notify/channel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                notification_type: notificationType,
+                channel_id: channelId,
+                channel_name: channelName
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save channel');
+        }
+
+        alert('Channel saved successfully! Refresh the page to see the changes.');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to save channel');
+    }
+}
+
+async function saveNotificationConfig(notificationType) {
+    const prefix = notificationType === 'member_join' ? 'memberJoin' : 'onboardingComplete';
+    const messageTextarea = document.getElementById(`${prefix}Message`);
+    const message = messageTextarea.value.trim();
+
+    if (!message) {
+        alert('Please enter a message template');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/notify/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                notification_type: notificationType,
+                message_template: message
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save configuration');
+        }
+
+        alert('Configuration saved successfully!');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to save configuration');
+    }
+}
+
+async function testNotification(notificationType) {
+    try {
+        const response = await fetch('/api/notify/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                notification_type: notificationType
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to send test notification');
+        }
+
+        alert('Test notification sent! Check the configured channel.');
+    } catch (error) {
+        console.error('Error:', error);
+        alert(`Failed to send test notification: ${error.message}`);
+    }
+}
+</script>
+{% endblock %}
