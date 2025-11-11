@@ -69,3 +69,4 @@ $RECYCLE.BIN/
 *.backup
 *.swp
 *~
+*nul

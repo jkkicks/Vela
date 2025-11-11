@@ -21,6 +21,7 @@ from sqlmodel import select  # noqa: E402
 # Force unbuffered output for better container/terminal behavior
 os.environ["PYTHONUNBUFFERED"] = "1"
 
+
 # Custom logging filter to suppress expected CancelledError during shutdown
 class SuppressCancelledErrorFilter(logging.Filter):
     def filter(self, record):
@@ -156,8 +157,7 @@ async def graceful_shutdown(tasks):
     # Wait for tasks to complete with timeout
     try:
         await asyncio.wait_for(
-            asyncio.gather(*tasks, return_exceptions=True),
-            timeout=5.0
+            asyncio.gather(*tasks, return_exceptions=True), timeout=5.0
         )
         print("Web server stopped", flush=True)
     except asyncio.TimeoutError:

@@ -290,7 +290,9 @@ async def approve_user(
             discord_guild = bot_instance.get_guild(user.guild_id)
 
             if discord_guild:
-                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                logger.info(
+                    f"Guild found: {discord_guild.name} (ID: {discord_guild.id})"
+                )
                 member = discord_guild.get_member(user.user_id)
 
                 if member:
@@ -322,9 +324,7 @@ async def approve_user(
                                 )
                                 discord_updated = True
                         except Exception as e:
-                            logger.warning(
-                                f"Could not add role to {member.name}: {e}"
-                            )
+                            logger.warning(f"Could not add role to {member.name}: {e}")
 
                     # Send DM to user
                     try:
@@ -512,7 +512,9 @@ async def demote_user(
             discord_guild = bot_instance.get_guild(user.guild_id)
 
             if discord_guild:
-                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                logger.info(
+                    f"Guild found: {discord_guild.name} (ID: {discord_guild.id})"
+                )
                 member = discord_guild.get_member(user.user_id)
 
                 if member:
@@ -645,7 +647,9 @@ async def restore_user(
             discord_guild = bot_instance.get_guild(user.guild_id)
 
             if discord_guild:
-                logger.info(f"Guild found: {discord_guild.name} (ID: {discord_guild.id})")
+                logger.info(
+                    f"Guild found: {discord_guild.name} (ID: {discord_guild.id})"
+                )
                 member = discord_guild.get_member(user.user_id)
 
                 if member:
