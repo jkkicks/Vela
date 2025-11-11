@@ -93,8 +93,14 @@ class VelaBot(commands.Bot):
         # Only add onboarding buttons if onboarding app is enabled
         view = None
         with next(get_session()) as session:
-            guild = session.exec(select(Guild).where(Guild.guild_id == guild_id)).first()
-            if guild and guild.settings and guild.settings.get("onboarding_enabled", True):
+            guild = session.exec(
+                select(Guild).where(Guild.guild_id == guild_id)
+            ).first()
+            if (
+                guild
+                and guild.settings
+                and guild.settings.get("onboarding_enabled", True)
+            ):
                 view = OnboardingView(guild_id=guild_id)
 
         # Default configuration

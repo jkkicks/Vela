@@ -683,7 +683,9 @@ async def update_welcome_message(
                     )
                     if success:
                         auto_updated = True
-                        logger.info(f"Welcome message auto-updated in Discord by {current_user['username']}")
+                        logger.info(
+                            f"Welcome message auto-updated in Discord by {current_user['username']}"
+                        )
                     else:
                         auto_update_error = message
         except Exception as e:
@@ -693,7 +695,7 @@ async def update_welcome_message(
     return {
         "message": "Welcome message configuration updated successfully",
         "auto_updated": auto_updated,
-        "auto_update_error": auto_update_error
+        "auto_update_error": auto_update_error,
     }
 
 
@@ -1260,7 +1262,9 @@ async def toggle_notification(
         f"Notification {notification_type} {'enabled' if enabled else 'disabled'} by {current_user['username']}"
     )
 
-    return {"message": f"Notification {notification_type} {'enabled' if enabled else 'disabled'}"}
+    return {
+        "message": f"Notification {notification_type} {'enabled' if enabled else 'disabled'}"
+    }
 
 
 @router.post("/notify/channel")
@@ -1307,7 +1311,7 @@ async def save_notification_channel(
         new_channel = Channel(
             guild_id=current_user["guild_id"],
             channel_id=int(channel_id),
-            name=channel_name or f"Notification Channel",
+            name=channel_name or "Notification Channel",
             channel_type=channel_type,
         )
         session.add(new_channel)
@@ -1477,7 +1481,9 @@ async def test_notification(
         # Get the Discord member who is testing (the current user)
         logger.info(f"Getting member {current_user['discord_id']}")
         try:
-            discord_member = await discord_guild.fetch_member(current_user["discord_id"])
+            discord_member = await discord_guild.fetch_member(
+                current_user["discord_id"]
+            )
         except Exception as e:
             logger.error(f"Member {current_user['discord_id']} not found in guild: {e}")
             raise HTTPException(404, "You are not a member of this guild")
@@ -1487,7 +1493,7 @@ async def test_notification(
         # Send the notification using the bot's method
         logger.info(f"Sending notification: {notification_type}")
         await bot.send_notification(notification_type, discord_member)
-        logger.info(f"Notification sent successfully")
+        logger.info("Notification sent successfully")
 
         # Log the action
         audit_log = AuditLog(

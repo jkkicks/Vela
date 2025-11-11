@@ -1,6 +1,28 @@
 #!/usr/bin/env python3
-"""Download required static assets for the web interface"""
-import os
+"""
+Vela Static Assets Downloader
+==============================
+
+This script downloads JavaScript libraries needed for the web dashboard.
+
+Usage: python download_assets.py (or run automatically via start.py)
+
+What this script does:
+1. Downloads htmx.min.js - For dynamic HTML updates without page reloads
+2. Downloads alpine.min.js - For reactive UI components
+3. Creates custom.css - Basic styling for the web interface
+
+Why we need this script:
+- Keeps external dependencies out of version control
+- Ensures we have the specific versions we need
+- Works offline once assets are downloaded
+- Automatically called by start.py if assets are missing
+
+When to run this:
+- Usually automatic (start.py checks and runs this if needed)
+- Manually if you delete the static/ folder
+- After cloning the repo for the first time
+"""
 import urllib.request
 from pathlib import Path
 
@@ -33,7 +55,8 @@ for filename, url in assets.items():
 # Create placeholder CSS file
 css_file = static_dir / "custom.css"
 if not css_file.exists():
-    css_file.write_text("""/* Custom styles for Vela */
+    css_file.write_text(
+        """/* Custom styles for Vela */
 .htmx-indicator {
     display: none;
 }
@@ -43,7 +66,8 @@ if not css_file.exists():
 .htmx-request.htmx-indicator {
     display: inline;
 }
-""")
+"""
+    )
     print("[OK] Created custom.css")
 
 print("\nAll assets downloaded successfully!")

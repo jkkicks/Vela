@@ -1,7 +1,32 @@
 #!/usr/bin/env python3
-"""Standalone virtual environment setup script for Vela"""
+"""
+Vela Virtual Environment Setup Script
+======================================
 
-import os
+This script is REQUIRED for first-time setup of Vela.
+
+Usage: python setup_venv.py
+
+What this script does:
+1. Searches for Python 3.13.x on your system
+2. Creates a .venv/ directory with Python 3.13
+3. Upgrades pip to the latest version
+4. Installs all dependencies from requirements.txt
+
+Why we need this script:
+- Vela requires Python 3.13+ for modern async features and type hints
+- Creates an isolated environment to prevent dependency conflicts
+- Ensures all team members use the same Python version
+- Only needs to be run once (unless you delete .venv/)
+
+When to run this:
+- First time setting up the project
+- After deleting .venv/ directory
+- When switching to a new Python version
+
+After running this script, use: python start.py
+"""
+
 import sys
 import subprocess
 from pathlib import Path
@@ -13,50 +38,51 @@ def find_python_313():
 
     # Possible locations for Python 3.13
     possible_paths = [
-        '/opt/homebrew/bin/python3.13',  # Homebrew on Apple Silicon
-        '/usr/local/bin/python3.13',      # Homebrew on Intel Mac
-        '/Library/Frameworks/Python.framework/Versions/3.13/bin/python3',  # python.org installer
-        'python3.13',  # In PATH
+        "/opt/homebrew/bin/python3.13",  # Homebrew on Apple Silicon
+        "/usr/local/bin/python3.13",  # Homebrew on Intel Mac
+        "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",  # python.org installer
+        "python3.13",  # In PATH
     ]
 
     # On Windows, check for py launcher
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         possible_paths = [
-            'py -3.13',  # Python launcher
-            'python3.13',
-            r'C:\Python313\python.exe',
-            r'C:\Program Files\Python313\python.exe',
+            "py -3.13",  # Python launcher
+            "python3.13",
+            r"C:\Python313\python.exe",
+            r"C:\Program Files\Python313\python.exe",
         ]
 
     for python_path in possible_paths:
         try:
             # Handle py launcher separately
-            if python_path.startswith('py '):
+            if python_path.startswith("py "):
                 cmd = python_path.split()
-                cmd.append('--version')
+                cmd.append("--version")
             else:
-                cmd = [python_path, '--version']
+                cmd = [python_path, "--version"]
 
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 check=False,
-                shell=(sys.platform == 'win32' and 'py ' in python_path)
+                shell=(sys.platform == "win32" and "py " in python_path),
             )
 
-            if result.returncode == 0 and '3.13' in result.stdout:
+            if result.returncode == 0 and "3.13" in result.stdout:
                 version_output = result.stdout.strip()
                 print(f"✅ Found {version_output}")
 
                 # Return the actual python path for py launcher
-                if python_path.startswith('py '):
+                if python_path.startswith("py "):
                     # Get the actual python path
                     get_path = subprocess.run(
-                        python_path.split() + ['-c', 'import sys; print(sys.executable)'],
+                        python_path.split()
+                        + ["-c", "import sys; print(sys.executable)"],
                         capture_output=True,
                         text=True,
-                        shell=True
+                        shell=True,
                     )
                     if get_path.returncode == 0:
                         return get_path.stdout.strip()
@@ -68,7 +94,7 @@ def find_python_313():
     return None
 
 
-def create_venv(python_path, venv_dir='.venv'):
+def create_venv(python_path, venv_dir=".venv"):
     """Create a virtual environment using the specified Python"""
     venv_path = Path(venv_dir)
 
@@ -76,9 +102,10 @@ def create_venv(python_path, venv_dir='.venv'):
         print(f"⚠️  Virtual environment already exists at {venv_dir}/")
         response = input("Delete and recreate? (y/N): ").strip().lower()
 
-        if response == 'y':
+        if response == "y":
             print(f"🗑️  Removing existing {venv_dir}/...")
             import shutil
+
             shutil.rmtree(venv_path)
         else:
             print("❌ Cancelled")
@@ -88,9 +115,9 @@ def create_venv(python_path, venv_dir='.venv'):
 
     try:
         # Use subprocess to call python -m venv
-        cmd = [python_path, '-m', 'venv', venv_dir]
-        result = subprocess.run(cmd, check=True)
-        print(f"✅ Virtual environment created successfully")
+        cmd = [python_path, "-m", "venv", venv_dir]
+        subprocess.run(cmd, check=True)
+        print("✅ Virtual environment created successfully")
         return True
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to create virtual environment: {e}")
@@ -100,17 +127,17 @@ def create_venv(python_path, venv_dir='.venv'):
         return False
 
 
-def install_dependencies(venv_dir='.venv'):
+def install_dependencies(venv_dir=".venv"):
     """Install dependencies from requirements.txt"""
     venv_path = Path(venv_dir)
 
     # Determine pip path
-    if sys.platform == 'win32':
-        pip_path = venv_path / 'Scripts' / 'pip.exe'
-        python_path = venv_path / 'Scripts' / 'python.exe'
+    if sys.platform == "win32":
+        pip_path = venv_path / "Scripts" / "pip.exe"
+        python_path = venv_path / "Scripts" / "python.exe"
     else:
-        pip_path = venv_path / 'bin' / 'pip'
-        python_path = venv_path / 'bin' / 'python'
+        pip_path = venv_path / "bin" / "pip"
+        python_path = venv_path / "bin" / "python"
 
     if not pip_path.exists():
         print(f"❌ pip not found at {pip_path}")
@@ -122,15 +149,11 @@ def install_dependencies(venv_dir='.venv'):
     try:
         # Upgrade pip first
         subprocess.run(
-            [str(python_path), '-m', 'pip', 'install', '--upgrade', 'pip'],
-            check=True
+            [str(python_path), "-m", "pip", "install", "--upgrade", "pip"], check=True
         )
 
         # Install requirements
-        result = subprocess.run(
-            [str(pip_path), 'install', '-r', 'requirements.txt'],
-            check=True
-        )
+        subprocess.run([str(pip_path), "install", "-r", "requirements.txt"], check=True)
 
         print("\n✅ Dependencies installed successfully")
         return True
@@ -142,7 +165,7 @@ def install_dependencies(venv_dir='.venv'):
         return False
 
 
-def verify_venv(venv_dir='.venv'):
+def verify_venv(venv_dir=".venv"):
     """Verify the virtual environment and its Python version"""
     venv_path = Path(venv_dir)
 
@@ -150,10 +173,10 @@ def verify_venv(venv_dir='.venv'):
         return False, "Virtual environment does not exist"
 
     # Determine python path
-    if sys.platform == 'win32':
-        python_path = venv_path / 'Scripts' / 'python.exe'
+    if sys.platform == "win32":
+        python_path = venv_path / "Scripts" / "python.exe"
     else:
-        python_path = venv_path / 'bin' / 'python'
+        python_path = venv_path / "bin" / "python"
 
     if not python_path.exists():
         return False, "Python executable not found in venv"
@@ -161,16 +184,13 @@ def verify_venv(venv_dir='.venv'):
     try:
         # Check Python version
         result = subprocess.run(
-            [str(python_path), '--version'],
-            capture_output=True,
-            text=True,
-            check=True
+            [str(python_path), "--version"], capture_output=True, text=True, check=True
         )
 
         version = result.stdout.strip()
 
         # Check if it's Python 3.13
-        if '3.13' not in version:
+        if "3.13" not in version:
             return False, f"Wrong Python version: {version} (expected 3.13.x)"
 
         return True, version
@@ -179,14 +199,16 @@ def verify_venv(venv_dir='.venv'):
 
 
 def main():
-    print("""
+    print(
+        """
 ╔═══════════════════════════════════════╗
 ║     Vela Virtual Environment Setup    ║
 ╚═══════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Check if we're in the right directory
-    if not Path('requirements.txt').exists():
+    if not Path("requirements.txt").exists():
         print("❌ requirements.txt not found!")
         print("Please run this script from the Vela project root directory.")
         sys.exit(1)
@@ -218,9 +240,9 @@ def main():
 
     if success:
         print(f"✅ {message}")
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("✅ Setup complete!")
-        print("="*50)
+        print("=" * 50)
         print("\nYou can now run:")
         print("  python start.py")
     else:

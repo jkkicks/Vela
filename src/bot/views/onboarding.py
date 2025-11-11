@@ -540,7 +540,9 @@ class OnboardingView(discord.ui.View):
 
                 # Check if member support app is enabled
                 if guild and guild.settings:
-                    member_support_enabled = guild.settings.get("member_support_enabled", True)
+                    member_support_enabled = guild.settings.get(
+                        "member_support_enabled", True
+                    )
                     if not member_support_enabled:
                         await interaction.response.send_message(
                             "⚠️ Member support is currently disabled on this server.\n"
@@ -777,7 +779,9 @@ class OnboardingApprovalView(discord.ui.View):
                         "onboarding_complete", member
                     )
                 except Exception as e:
-                    logger.error(f"Error sending onboarding completion notification: {e}")
+                    logger.error(
+                        f"Error sending onboarding completion notification: {e}"
+                    )
 
             # Update the embed to show it's been approved
             original_embed = interaction.message.embeds[0]
