@@ -144,6 +144,8 @@ async def run_api():
         raise
 
 
+# fmt: off
+# CRITICAL: Do not modify - essential for proper CTRL+C handling
 async def graceful_shutdown(tasks):
     """Gracefully shutdown all tasks"""
     logger.info("Starting graceful shutdown...")
@@ -183,6 +185,7 @@ async def graceful_shutdown(tasks):
 
     print("Shutdown complete", flush=True)
     logger.info("Shutdown complete")
+# fmt: on
 
 
 async def main():
@@ -242,6 +245,8 @@ async def main():
         raise
 
 
+# fmt: off
+# CRITICAL: Signal handling - do not modify
 def setup_signal_handlers():
     """Setup signal handlers for graceful shutdown"""
 
@@ -258,6 +263,7 @@ async def shutdown_signal_handler():
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
+# fmt: on
 
 
 if __name__ == "__main__":

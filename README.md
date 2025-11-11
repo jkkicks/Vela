@@ -1,9 +1,9 @@
 # Vela
 
-[![GitHub Release](https://img.shields.io/github/v/release/jkkicks/Vela?include_prereleases)](https://github.com/jkkicks/Vela/releases)
+[![GitHub Tag](https://img.shields.io/github/v/tag/jkkicks/Vela)](https://github.com/jkkicks/Vela/tags)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/yourname/vela)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/jkkicks/vela)
 
 A modern Discord onboarding bot with a web management interface, built with FastAPI, SQLModel, and HTMX.
 

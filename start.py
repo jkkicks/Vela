@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Quick start script for Vela"""
+# fmt: off
 
 import os
 import sys
@@ -113,7 +114,7 @@ def check_env():
             lines.append(f'ENCRYPTION_KEY={key}')
 
         env_path.write_text('\n'.join(lines))
-        print(f"[OK] Added ENCRYPTION_KEY to .env")
+        print("[OK] Added ENCRYPTION_KEY to .env")
 
     return True
 
