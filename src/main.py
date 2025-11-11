@@ -18,6 +18,8 @@ from src.shared.database import init_database, get_session  # noqa: E402
 from src.shared.models import Guild, AdminUser  # noqa: E402
 from sqlmodel import select  # noqa: E402
 
+# Force unbuffered output for better container/terminal behavior
+os.environ["PYTHONUNBUFFERED"] = "1"
 
 # Custom logging filter to suppress expected CancelledError during shutdown
 class SuppressCancelledErrorFilter(logging.Filter):
@@ -30,7 +32,7 @@ class SuppressCancelledErrorFilter(logging.Filter):
         return True
 
 
-# Setup logging - default to ./data unless overridden
+# Setup logging
 data_dir = os.getenv("DATA_DIR", "./data")
 os.makedirs(data_dir, exist_ok=True)
 
@@ -141,6 +143,48 @@ async def run_api():
         raise
 
 
+async def graceful_shutdown(tasks):
+    """Gracefully shutdown all tasks"""
+    logger.info("Starting graceful shutdown...")
+    print("\nShutting down Vela...", flush=True)
+
+    # Cancel all tasks
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+
+    # Wait for tasks to complete with timeout
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(*tasks, return_exceptions=True),
+            timeout=5.0
+        )
+        print("Web server stopped", flush=True)
+    except asyncio.TimeoutError:
+        logger.warning("Some tasks did not complete within timeout")
+        print("Web server stopped (forced)", flush=True)
+
+    # Cleanup bot instance
+    global bot_instance
+    if bot_instance:
+        if not bot_instance.is_closed():
+            try:
+                await asyncio.wait_for(bot_instance.close(), timeout=3.0)
+                print("Discord bot stopped", flush=True)
+                logger.info("Discord bot connection closed")
+            except asyncio.TimeoutError:
+                logger.warning("Bot close timed out")
+                print("Discord bot stopped (forced)", flush=True)
+            except Exception as e:
+                logger.error(f"Error closing bot: {e}")
+        else:
+            # Bot already closed during task cancellation
+            print("Discord bot stopped", flush=True)
+
+    print("Shutdown complete", flush=True)
+    logger.info("Shutdown complete")
+
+
 async def main():
     """Run both services concurrently"""
     print(
@@ -170,27 +214,6 @@ async def main():
 
     # Create tasks for both services
     tasks = []
-    loop = asyncio.get_event_loop()
-    shutdown_event = asyncio.Event()
-
-    # Signal handler to trigger shutdown
-    def signal_handler():
-        """Handle shutdown signals"""
-        logger.info("Received shutdown signal")
-        shutdown_event.set()
-        # Cancel all tasks
-        for task in asyncio.all_tasks(loop):
-            task.cancel()
-
-    # Register signal handlers based on platform
-    if sys.platform == "win32":
-        # Windows signal handling
-        signal.signal(signal.SIGBREAK, lambda s, f: signal_handler())
-        signal.signal(signal.SIGINT, lambda s, f: signal_handler())
-    else:
-        # Unix signal handling
-        loop.add_signal_handler(signal.SIGTERM, signal_handler)
-        loop.add_signal_handler(signal.SIGINT, signal_handler)
 
     # Always start the API
     api_task = asyncio.create_task(run_api())
@@ -208,35 +231,42 @@ async def main():
     print(f"[INFO] API documentation at: http://localhost:{settings.api_port}/docs\n")
     print("Press Ctrl+C to stop\n")
 
-    # Run both services
+    # Run both services with proper shutdown handling
     try:
         await asyncio.gather(*tasks, return_exceptions=False)
     except (KeyboardInterrupt, asyncio.CancelledError):
-        print("\n\nShutting down...")
-        # Cancel all tasks
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        # Wait for tasks to cancel
-        await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Close bot if needed
-        if bot_instance and not bot_instance.is_closed():
-            await bot_instance.close()
-
-        print("Shutdown complete")
+        await graceful_shutdown(tasks)
     except Exception as e:
         logger.error(f"Application error: {e}")
+        await graceful_shutdown(tasks)
         raise
+
+
+def setup_signal_handlers():
+    """Setup signal handlers for graceful shutdown"""
+
+    # For Docker containers and Unix systems
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, lambda s, f: asyncio.create_task(shutdown_signal_handler()))
+
+
+async def shutdown_signal_handler():
+    """Handle shutdown signals"""
+    logger.info("Received shutdown signal")
+    # Cancel all running tasks
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 if __name__ == "__main__":
     try:
+        # Run the main application
         asyncio.run(main())
     except KeyboardInterrupt:
         print("\nGoodbye!")
-        sys.exit(0)
     except Exception as e:
         logger.error(f"Fatal error: {e}")
-        print(f"Fatal error: {e}")
+        print(f"[ERROR] Fatal error: {e}")
         sys.exit(1)

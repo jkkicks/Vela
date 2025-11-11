@@ -78,11 +78,11 @@ class VelaBot(commands.Bot):
         try:
             synced = await self.tree.sync()
             logger.info(f"Slash Commands Synced. {len(synced)} Total Commands")
-            print(f"Slash Commands Synced. {len(synced)} Total Commands")
+            print(f"Slash Commands Synced. {len(synced)} Total Commands", flush=True)
         except Exception as e:
             logger.error(f"Failed to sync commands: {e}")
 
-        print("Bot is ready!")
+        print("Bot is ready!", flush=True)
 
     def _get_welcome_message_content(self, welcome_config: dict, guild_id: int):
         """Build welcome message content from configuration"""
