@@ -5,10 +5,10 @@
     }
 }"
     :class="collapsed ? 'w-16' : 'w-64'"
-    class="relative bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out">
+    class="hidden md:flex md:flex-col relative bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out h-full">
 
-    <nav class="h-full overflow-y-auto overflow-x-hidden">
-        <ul class="p-4 space-y-2">
+    <nav class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
+        <ul class="flex-1 p-4 space-y-2">
             <!-- Toggle Button as first menu item -->
             <li>
                 <button @click="collapsed = !collapsed"
