@@ -1,64 +1,132 @@
-<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-    <nav class="h-full overflow-y-auto">
+<aside x-data="{
+    collapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+    init() {
+        this.$watch('collapsed', value => localStorage.setItem('sidebarCollapsed', value))
+    }
+}"
+    :class="collapsed ? 'w-16' : 'w-64'"
+    class="relative bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out">
+
+    <nav class="h-full overflow-y-auto overflow-x-hidden">
         <ul class="p-4 space-y-2">
+            <!-- Toggle Button as first menu item -->
+            <li>
+                <button @click="collapsed = !collapsed"
+                        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                        class="flex items-center w-full rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-all duration-200"
+                        :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-transform duration-300" :class="collapsed ? 'rotate-180' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                    </svg>
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Collapse Menu</span>
+                </button>
+            </li>
+
             <li>
                 <a href="/dashboard"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.url.path == '/dashboard' %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Dashboard' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.url.path == '/dashboard' %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                     </svg>
-                    Dashboard
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Dashboard</span>
                 </a>
             </li>
 
             <li>
                 <a href="/admin/users"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/users' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Users' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/users' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
                     </svg>
-                    Users
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Users</span>
                 </a>
             </li>
 
             <li>
                 <a href="/admin/config"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/config' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Configuration' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/config' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                     </svg>
-                    Configuration
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Configuration</span>
                 </a>
             </li>
 
             <li>
                 <a href="/admin/apps"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/apps' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Apps' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/apps' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                     </svg>
-                    Apps
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Apps</span>
                 </a>
             </li>
 
             <li>
                 <a href="/admin/logs"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/logs' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Audit Logs' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/logs' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/>
                     </svg>
-                    Audit Logs
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Audit Logs</span>
                 </a>
             </li>
 
             {% if current_user and current_user.is_super_admin %}
             <li>
                 <a href="/admin/guilds"
-                   class="flex items-center px-4 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/guilds' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">
-                    <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                   :title="collapsed ? 'Guilds' : ''"
+                   class="flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {% if '/guilds' in request.url.path %}bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300{% endif %} transition-all duration-200"
+                   :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                    <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                     </svg>
-                    Guilds
+                    <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">Guilds</span>
                 </a>
             </li>
             {% endif %}
@@ -67,11 +135,18 @@
         <!-- API Documentation Link -->
         <div class="p-4 border-t border-gray-200 dark:border-gray-700">
             <a href="/docs" target="_blank"
-               class="flex items-center px-4 py-2 text-sm text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+               :title="collapsed ? 'API Docs' : ''"
+               class="flex items-center text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+               :class="collapsed ? 'px-3 py-2 justify-center' : 'px-4 py-2 text-sm'">
+                <svg class="w-5 h-5 flex-shrink-0" :class="collapsed ? '' : 'mr-3'" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>
-                API Docs
+                <span x-show="!collapsed" x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0"
+                          x-transition:enter-end="opacity-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0">API Docs</span>
             </a>
         </div>
     </nav>
