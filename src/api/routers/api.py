@@ -1511,6 +1511,7 @@ async def toggle_app(
         "member_support": "member_support_enabled",
         "slash_commands": "slash_commands_enabled",
         "notifications": "notifications_enabled",
+        "sync": "sync_enabled",
     }
 
     setting_key = app_settings_map.get(app_name)
@@ -1560,6 +1561,33 @@ async def toggle_app(
     )
     session.add(audit_log)
     session.commit()
+
+    # Special handling for sync service
+    if app_name == "sync":
+        bot = request.app.state.bot if hasattr(request.app.state, "bot") else None
+        if bot:
+            if enabled:
+                # Service was enabled - start the task if not running
+                if not hasattr(bot, "sync_task") or not bot.sync_task:
+                    # Check if the method exists (for compatibility with running instances)
+                    if hasattr(bot, "start_sync_task"):
+                        await bot.start_sync_task()
+                        logger.info("Started sync task from app toggle")
+                    else:
+                        # Method doesn't exist yet - initialize task directly
+                        try:
+                            from src.bot.tasks.sync import (
+                                SyncTask,
+                            )
+
+                            bot.sync_task = SyncTask(bot)
+                            await bot.sync_task.start()
+                            logger.info("Started sync task directly from app toggle")
+                        except Exception as e:
+                            logger.error(f"Failed to start sync task: {e}")
+            else:
+                # Service was disabled - task will stop checking on next iteration
+                logger.info("sync disabled from app toggle")
 
     logger.info(
         f"App {app_name} {'enabled' if enabled else 'disabled'} by {current_user['username']}"
@@ -2040,3 +2068,218 @@ async def test_notification(
     except Exception as e:
         logger.error(f"Error sending test notification: {e}")
         raise HTTPException(500, f"Error sending test notification: {str(e)}")
+
+
+# sync Service Endpoints
+@router.get("/sync/status")
+async def get_sync_status(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Get the status of the sync service"""
+    try:
+        # Get bot instance from FastAPI app state
+        bot = request.app.state.bot if hasattr(request.app.state, "bot") else None
+
+        if not bot:
+            return {
+                "enabled": False,
+                "running": False,
+                "error": "Bot not connected",
+            }
+
+        # Get guild settings
+        guild = session.exec(
+            select(Guild).where(Guild.guild_id == current_user["guild_id"])
+        ).first()
+
+        if not guild:
+            raise HTTPException(404, "Guild not found")
+
+        # Get settings from guild
+        settings = guild.settings or {}
+        enabled = settings.get("sync_enabled", False)
+        interval = settings.get("sync_interval_minutes", 15)
+        lookback = settings.get("sync_lookback_hours", 24)
+
+        # Get task stats if available
+        stats = {}
+        if hasattr(bot, "sync_task") and bot.sync_task:
+            stats = bot.sync_task.get_stats()
+
+        return {
+            "enabled": enabled,
+            "running": stats.get("running", False) if stats else False,
+            "interval_minutes": interval,
+            "lookback_hours": lookback,
+            "last_run": stats.get("last_run") if stats else None,
+            "total_runs": stats.get("total_runs", 0) if stats else 0,
+            "messages_checked": stats.get("total_messages_checked", 0) if stats else 0,
+            "messages_updated": stats.get("total_messages_updated", 0) if stats else 0,
+            "errors": stats.get("total_errors", 0) if stats else 0,
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting sync status: {e}")
+        raise HTTPException(500, f"Failed to get sync status: {str(e)}")
+
+
+@router.post("/sync/configure")
+async def configure_sync(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Configure sync service settings"""
+    try:
+        data = await request.json()
+
+        # Get guild
+        guild = session.exec(
+            select(Guild).where(Guild.guild_id == current_user["guild_id"])
+        ).first()
+
+        if not guild:
+            raise HTTPException(404, "Guild not found")
+
+        # Update settings
+        if not guild.settings:
+            guild.settings = {}
+
+        # Validate settings
+        if "enabled" in data:
+            guild.settings["sync_enabled"] = bool(data["enabled"])
+
+        if "interval_minutes" in data:
+            interval = int(data["interval_minutes"])
+            if interval < 5 or interval > 1440:  # Min 5 minutes, max 24 hours
+                raise HTTPException(400, "Interval must be between 5 and 1440 minutes")
+            guild.settings["sync_interval_minutes"] = interval
+
+        if "lookback_hours" in data:
+            lookback = int(data["lookback_hours"])
+            if lookback < 1 or lookback > 168:  # Min 1 hour, max 7 days
+                raise HTTPException(400, "Lookback must be between 1 and 168 hours")
+            guild.settings["sync_lookback_hours"] = lookback
+
+        session.add(guild)
+        session.commit()
+
+        # If bot is connected, handle task initialization/shutdown based on enabled state
+        bot = request.app.state.bot if hasattr(request.app.state, "bot") else None
+        if bot:
+            if "enabled" in data:
+                if guild.settings["sync_enabled"]:
+                    # Service was enabled - start the task if not running
+                    if not hasattr(bot, "sync_task") or not bot.sync_task:
+                        # Check if the method exists (for compatibility with running instances)
+                        if hasattr(bot, "start_sync_task"):
+                            await bot.start_sync_task()
+                            logger.info(
+                                f"Started sync task for guild {current_user['guild_id']}"
+                            )
+                        else:
+                            # Method doesn't exist yet - initialize task directly
+                            try:
+                                from src.bot.tasks.sync import (
+                                    SyncTask,
+                                )
+
+                                bot.sync_task = SyncTask(bot)
+                                await bot.sync_task.start()
+                                logger.info(
+                                    f"Started sync task directly for guild {current_user['guild_id']}"
+                                )
+                            except Exception as e:
+                                logger.error(f"Failed to start sync task: {e}")
+                    else:
+                        logger.info(
+                            f"sync task already running for guild {current_user['guild_id']}"
+                        )
+                else:
+                    # Service was disabled - task will stop checking this guild on next iteration
+                    logger.info(f"sync disabled for guild {current_user['guild_id']}")
+
+            # If task is running, it will pick up new interval/lookback settings on next iteration
+            if hasattr(bot, "sync_task") and bot.sync_task:
+                logger.info(
+                    f"sync settings updated for guild {current_user['guild_id']}"
+                )
+
+        return {
+            "success": True,
+            "message": "sync settings updated",
+            "settings": {
+                "enabled": guild.settings.get("sync_enabled", False),
+                "interval_minutes": guild.settings.get("sync_interval_minutes", 15),
+                "lookback_hours": guild.settings.get("sync_lookback_hours", 24),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error configuring sync: {e}")
+        raise HTTPException(500, f"Failed to configure sync: {str(e)}")
+
+
+@router.post("/sync/trigger")
+async def trigger_sync(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Manually trigger a sync run"""
+    try:
+        # Get bot instance
+        bot = request.app.state.bot if hasattr(request.app.state, "bot") else None
+
+        if not bot:
+            raise HTTPException(503, "Bot is not connected")
+
+        if not hasattr(bot, "sync_task") or not bot.sync_task:
+            raise HTTPException(503, "sync service is not initialized")
+
+        # Trigger manual run for the user's guild
+        result = await bot.sync_task.trigger_manual_run(
+            guild_id=current_user["guild_id"]
+        )
+
+        if not result.get("success"):
+            raise HTTPException(
+                500, f"sync failed: {result.get('error', 'Unknown error')}"
+            )
+
+        # Log the manual trigger
+        audit_log = AuditLog(
+            guild_id=current_user["guild_id"],
+            user_id=0,  # System action
+            discord_username=current_user["username"],
+            action="sync_manual_trigger",  # Changed from action_type to action
+            details={
+                "triggered_by": current_user["username"],
+                "messages_checked": result.get("messages_checked", 0),
+                "messages_updated": result.get("messages_updated", 0),
+                "errors": result.get("errors", 0),
+            },
+        )
+        session.add(audit_log)
+        session.commit()
+
+        return {
+            "success": True,
+            "message": "sync triggered successfully",
+            "result": {
+                "messages_checked": result.get("messages_checked", 0),
+                "messages_updated": result.get("messages_updated", 0),
+                "errors": result.get("errors", 0),
+                "last_run": result.get("last_run"),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering sync: {e}")
+        raise HTTPException(500, f"Failed to trigger sync: {str(e)}")

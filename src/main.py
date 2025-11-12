@@ -97,8 +97,12 @@ async def run_bot():
 
     except asyncio.CancelledError:
         logger.info("Bot task cancelled, closing bot...")
-        if bot_instance and not bot_instance.is_closed():
-            await bot_instance.close()
+        if bot_instance:
+            # Stop sync task before closing bot
+            if hasattr(bot_instance, "sync_task") and bot_instance.sync_task:
+                await bot_instance.stop_sync_task()
+            if not bot_instance.is_closed():
+                await bot_instance.close()
         raise
     except discord.LoginFailure:
         logger.error("Failed to login to Discord: Invalid token")

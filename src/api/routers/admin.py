@@ -110,6 +110,7 @@ async def apps_page(
             "notifications": {
                 "enabled": guild.settings.get("notifications_enabled", False)
             },
+            "sync": {"enabled": guild.settings.get("sync_enabled", False)},
         }
     else:
         # Default values if no guild settings exist
@@ -119,6 +120,7 @@ async def apps_page(
             "member_management": {"enabled": False},
             "member_support": {"enabled": False},
             "notifications": {"enabled": False},
+            "sync": {"enabled": False},
         }
 
     return templates.TemplateResponse(
@@ -232,6 +234,38 @@ async def onboarding_app_page(
             "onboarded_role": onboarded_role,
             "approval_channel": approval_channel,
             "approver_roles": approver_roles,
+            "current_user": current_user,
+        },
+    )
+
+
+@router.get("/apps/sync", response_class=HTMLResponse)
+async def sync_app_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Sync service app configuration page"""
+    # Get guild configuration
+    guild = session.exec(
+        select(Guild).where(Guild.guild_id == current_user["guild_id"])
+    ).first()
+
+    # Get approval channel to display info
+    approval_channel = session.exec(
+        select(Channel).where(
+            Channel.guild_id == current_user["guild_id"],
+            Channel.channel_type == "onboarding_approval",
+        )
+    ).first()
+
+    return templates.TemplateResponse(
+        "pages/apps/sync.html",
+        {
+            "request": request,
+            "title": "Sync",
+            "guild": guild,
+            "approval_channel": approval_channel,
             "current_user": current_user,
         },
     )
