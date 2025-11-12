@@ -21,9 +21,14 @@ COPY templates/ ./templates/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
 
-# Copy the download assets script and run it to get the JavaScript files
-COPY download_assets.py ./
-RUN python download_assets.py
+# Download static assets during build
+# First create the static directory
+RUN mkdir -p /app/static
+
+# Download JavaScript libraries directly in the Dockerfile
+RUN curl -sSL https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js -o /app/static/htmx.min.js && \
+    curl -sSL https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js -o /app/static/alpine.min.js && \
+    echo '/* Custom styles for Vela */\n.htmx-indicator { display: none; }\n.htmx-request .htmx-indicator { display: inline; }\n.htmx-request.htmx-indicator { display: inline; }' > /app/static/custom.css
 
 # Create data directory and set as volume
 RUN mkdir -p /app/data
