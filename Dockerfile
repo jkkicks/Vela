@@ -18,9 +18,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 COPY templates/ ./templates/
-COPY static/ ./static/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
+
+# Copy the download assets script and run it to get the JavaScript files
+COPY download_assets.py ./
+RUN python download_assets.py
 
 # Create data directory and set as volume
 RUN mkdir -p /app/data
