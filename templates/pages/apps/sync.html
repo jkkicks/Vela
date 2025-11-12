@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sync</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Keep Discord and your database perfectly synchronized
+            </p>
+        </div>
+        <a href="/admin/apps" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+            Back to Apps
+        </a>
+    </div>
+
+    <!-- Service Status -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Service Status</h2>
+        <div id="status-container" class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Loading status...</span>
+                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
+                    <svg class="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Loading
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Configuration</h2>
+
+        <div class="space-y-4">
+            <!-- Enable Service -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Enable Sync Service</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Automatically detect and fix inconsistencies between Discord and database
+                        </p>
+                    </div>
+                    <input
+                        type="checkbox"
+                        id="sync_enabled"
+                        class="h-5 w-5 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                        {% if guild and guild.settings.get('sync_enabled', False) %}checked{% endif %}
+                    >
+                </label>
+            </div>
+
+            <!-- Check Interval -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="block">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Sync Interval</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        How often to check for inconsistencies (in minutes)
+                    </p>
+                    <div class="flex items-center space-x-2">
+                        <input
+                            type="number"
+                            id="sync_interval"
+                            min="5"
+                            max="1440"
+                            value="{% if guild and guild.settings.get('sync_interval_minutes') %}{{ guild.settings.get('sync_interval_minutes', 15) }}{% else %}15{% endif %}"
+                            class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                        <span class="text-sm text-gray-600 dark:text-gray-400">minutes (5-1440)</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Lookback Period -->
+            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <label class="block">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Lookback Period</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        How far back to check for pending approval messages (in hours)
+                    </p>
+                    <div class="flex items-center space-x-2">
+                        <input
+                            type="number"
+                            id="sync_lookback"
+                            min="1"
+                            max="168"
+                            value="{% if guild and guild.settings.get('sync_lookback_hours') %}{{ guild.settings.get('sync_lookback_hours', 24) }}{% else %}24{% endif %}"
+                            class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                        <span class="text-sm text-gray-600 dark:text-gray-400">hours (1-168)</span>
+                    </div>
+                </label>
+            </div>
+
+            <button
+                onclick="savesyncConfig()"
+                class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+                Save Configuration
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Trigger -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Manual Sync</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Manually trigger a sync to immediately detect and fix any inconsistencies between Discord and your database.
+        </p>
+
+        <button
+            id="trigger-button"
+            onclick="triggersync()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+            Run Sync Now
+        </button>
+
+        <div id="trigger-result" class="mt-4 hidden">
+            <!-- Results will be shown here -->
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Statistics</h2>
+        <div id="stats-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Total Runs</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-runs">-</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Messages Checked</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-checked">-</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Messages Updated</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-updated">-</p>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                <span class="font-medium">Last Run:</span>
+                <span id="last-run">Never</span>
+            </p>
+            {% if approval_channel %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <span class="font-medium">Approval Channel:</span>
+                {{ approval_channel.name or 'Channel configured' }}
+            </p>
+            {% else %}
+            <p class="text-sm text-amber-600 dark:text-amber-400 mt-1">
+                <span class="font-medium">Warning:</span>
+                No approval channel configured. The service will not run without an approval channel.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-200 mb-2">How it Works</h3>
+        <div class="text-sm text-orange-700 dark:text-orange-300 space-y-2">
+            <p>
+                The Sync service monitors your Discord server and database, automatically detecting when they're out of sync.
+            </p>
+            <p>
+                When inconsistencies are found (like approval messages that timed out), it automatically updates Discord to match your database records.
+            </p>
+            <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                <li>Approved users: Message updated to show green approval status with approver information</li>
+                <li>Denied users: Message updated to show red denied status</li>
+                <li>Pending users: Messages left unchanged with active buttons</li>
+            </ul>
+            <p class="mt-2">
+                This ensures your Discord server always reflects the true state of your data, providing a reliable single source of truth.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let statusInterval = null;
+
+// Load status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadsyncStatus();
+    // Refresh status every 30 seconds
+    statusInterval = setInterval(loadsyncStatus, 30000);
+});
+
+// Clean up interval on page unload
+window.addEventListener('beforeunload', function() {
+    if (statusInterval) {
+        clearInterval(statusInterval);
+    }
+});
+
+async function loadsyncStatus() {
+    try {
+        const response = await fetch('/api/sync/status');
+        const data = await response.json();
+
+        // Update status display
+        const statusContainer = document.getElementById('status-container');
+        const statusClass = data.running ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200' :
+                           data.enabled ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200' :
+                           'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300';
+        const statusText = data.running ? 'Running' : data.enabled ? 'Enabled (Idle)' : 'Disabled';
+        const statusIcon = data.running ? '🟢' : data.enabled ? '🟡' : '⚫';
+
+        statusContainer.innerHTML = `
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Service Status</span>
+                    ${data.error ? `<p class="text-xs text-red-600 dark:text-red-400 mt-1">${data.error}</p>` : ''}
+                </div>
+                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${statusClass}">
+                    ${statusIcon} ${statusText}
+                </span>
+            </div>
+            ${data.enabled ? `
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Check Interval</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">${data.interval_minutes} minutes</span>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Lookback Period</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">${data.lookback_hours} hours</span>
+            </div>
+            ` : ''}
+        `;
+
+        // Update statistics
+        document.getElementById('stat-runs').textContent = data.total_runs || '0';
+        document.getElementById('stat-checked').textContent = data.messages_checked || '0';
+        document.getElementById('stat-updated').textContent = data.messages_updated || '0';
+
+        // Update last run time
+        if (data.last_run) {
+            const lastRunDate = new Date(data.last_run);
+            document.getElementById('last-run').textContent = lastRunDate.toLocaleString();
+        } else {
+            document.getElementById('last-run').textContent = 'Never';
+        }
+
+        // Update checkbox state
+        document.getElementById('sync_enabled').checked = data.enabled;
+
+    } catch (error) {
+        console.error('Error loading sync status:', error);
+        document.getElementById('status-container').innerHTML = `
+            <div class="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <span class="text-sm text-red-700 dark:text-red-300">Failed to load status</span>
+                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200">
+                    ❌ Error
+                </span>
+            </div>
+        `;
+    }
+}
+
+async function savesyncConfig() {
+    const enabled = document.getElementById('sync_enabled').checked;
+    const interval = parseInt(document.getElementById('sync_interval').value);
+    const lookback = parseInt(document.getElementById('sync_lookback').value);
+
+    // Validate inputs
+    if (interval < 5 || interval > 1440) {
+        showToast('Interval must be between 5 and 1440 minutes', 'error');
+        return;
+    }
+
+    if (lookback < 1 || lookback > 168) {
+        showToast('Lookback period must be between 1 and 168 hours', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/sync/configure', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                enabled: enabled,
+                interval_minutes: interval,
+                lookback_hours: lookback
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Configuration saved successfully', 'success');
+            // Reload status to reflect changes
+            loadsyncStatus();
+        } else {
+            showToast(data.detail || 'Failed to save configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showToast('Failed to save configuration', 'error');
+    }
+}
+
+async function triggersync() {
+    const button = document.getElementById('trigger-button');
+    const resultDiv = document.getElementById('trigger-result');
+
+    // Disable button and show loading state
+    button.disabled = true;
+    button.innerHTML = `
+        <svg class="animate-spin h-4 w-4 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        Running...
+    `;
+
+    // Hide previous results
+    resultDiv.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/sync/trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Show success result
+            resultDiv.innerHTML = `
+                <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <h4 class="text-sm font-semibold text-green-900 dark:text-green-200 mb-2">Sync Complete</h4>
+                    <div class="text-sm text-green-700 dark:text-green-300 space-y-1">
+                        <p>✓ Messages Checked: ${data.result.messages_checked}</p>
+                        <p>✓ Messages Updated: ${data.result.messages_updated}</p>
+                        ${data.result.errors > 0 ? `<p>⚠ Errors: ${data.result.errors}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+
+            // Reload status to update statistics
+            setTimeout(loadsyncStatus, 1000);
+        } else {
+            // Show error
+            resultDiv.innerHTML = `
+                <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <h4 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">Sync Failed</h4>
+                    <p class="text-sm text-red-700 dark:text-red-300">${data.detail || 'An error occurred'}</p>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error triggering sync:', error);
+        resultDiv.innerHTML = `
+            <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <h4 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">Request Failed</h4>
+                <p class="text-sm text-red-700 dark:text-red-300">Failed to trigger sync</p>
+            </div>
+        `;
+        resultDiv.classList.remove('hidden');
+    } finally {
+        // Re-enable button
+        button.disabled = false;
+        button.innerHTML = 'Run Sync Now';
+    }
+}
+</script>
+{% endblock %}

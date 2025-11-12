@@ -21,7 +21,7 @@
 
         <div class="space-y-4">
             <!-- Welcome Channel -->
-            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 sm:space-y-0">
                 <div class="flex-1">
                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">Welcome Channel</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -37,7 +37,7 @@
                 <div>
                     <button
                         onclick="configureChannel('welcome')"
-                        class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {% if welcome_channel %}Update{% else %}Configure{% endif %}
                     </button>
@@ -45,7 +45,7 @@
             </div>
 
             <!-- Logs Channel -->
-            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 sm:space-y-0">
                 <div class="flex-1">
                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">Logs Channel</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -61,7 +61,7 @@
                 <div>
                     <button
                         onclick="configureChannel('logs')"
-                        class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {% if logs_channel %}Update{% else %}Configure{% endif %}
                     </button>
@@ -69,7 +69,7 @@
             </div>
 
             <!-- Bot Commands Channel -->
-            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 sm:space-y-0">
                 <div class="flex-1">
                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">Bot Commands Channel</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -85,7 +85,7 @@
                 <div>
                     <button
                         onclick="configureChannel('bot_commands')"
-                        class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {% if commands_channel %}Update{% else %}Configure{% endif %}
                     </button>
@@ -103,7 +103,7 @@
 
         <div class="space-y-4">
             <!-- Onboarded Role -->
-            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 sm:space-y-0">
                 <div class="flex-1">
                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">Onboarded Role</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -119,7 +119,7 @@
                 <div>
                     <button
                         onclick="configureRole('onboarded')"
-                        class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {% if onboarded_role %}Update{% else %}Configure{% endif %}
                     </button>

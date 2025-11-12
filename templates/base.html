@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}{{ title }}{% endblock %} - Vela</title>
 
     <!-- HTMX -->
@@ -25,26 +25,74 @@
         .htmx-request.htmx-indicator {
             display: inline;
         }
+
+        /* Safari safe area support */
+        .safe-area-inset {
+            /* Add padding for the safe area */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .pb-safe {
+            /* Extra padding at the bottom for Safari mobile */
+            padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+        }
+
+        @supports (padding: max(0px)) {
+            .pb-safe {
+                padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+            }
+        }
+
+        /* Ensure minimum padding on devices without safe areas */
+        @media (max-width: 768px) {
+            .pb-safe {
+                padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+            }
+        }
+
+        /* Safari-specific fix for bottom bar */
+        @supports (-webkit-touch-callout: none) {
+            /* iOS Safari specific styles */
+            @media (max-width: 768px) {
+                .pb-safe {
+                    /* Add extra padding for Safari's bottom bar (typically 44-88px) */
+                    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+                    padding-bottom: calc(6rem + constant(safe-area-inset-bottom)); /* iOS 11.0-11.2 */
+                    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); /* iOS 11.2+ */
+                }
+            }
+        }
+
+        /* Additional fix for iOS devices in standalone mode */
+        @media (display-mode: standalone) {
+            .pb-safe {
+                padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+            }
+        }
     </style>
 
     {% block head %}{% endblock %}
 </head>
-<body class="bg-gray-50 dark:bg-gray-900">
-    <!-- Navigation -->
-    {% include "components/navbar.html" %}
+<body class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden">
+    <div class="flex flex-col h-full">
+        <!-- Navigation -->
+        {% include "components/navbar.html" %}
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        {% if request.cookies.get('auth_token') %}
-            {% include "components/sidebar.html" %}
-        {% endif %}
+        <div class="flex flex-1 min-h-0">
+            <!-- Sidebar (hidden on mobile, visible on desktop) -->
+            {% if request.cookies.get('auth_token') %}
+                {% include "components/sidebar.html" %}
+            {% endif %}
 
-        <!-- Main content -->
-        <main class="flex-1 overflow-y-auto">
-            <div class="container mx-auto px-4 py-8">
-                {% block content %}{% endblock %}
-            </div>
-        </main>
+            <!-- Main content -->
+            <main class="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 safe-area-inset">
+                <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-safe">
+                    <div class="max-w-7xl mx-auto">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <!-- Loading indicator -->

@@ -29,6 +29,7 @@ class VelaBot(commands.Bot):
         )
         self.guild_id: Optional[int] = None
         self.db_initialized = False
+        self.sync_task = None
 
     async def setup_hook(self) -> None:
         """Setup persistent views and load cogs"""
@@ -81,6 +82,10 @@ class VelaBot(commands.Bot):
             print(f"Slash Commands Synced. {len(synced)} Total Commands", flush=True)
         except Exception as e:
             logger.error(f"Failed to sync commands: {e}")
+
+        # Start sync task if database is initialized
+        if self.db_initialized:
+            await self.start_sync_task()
 
         print("Bot is ready!", flush=True)
 
@@ -430,6 +435,34 @@ class VelaBot(commands.Bot):
     async def on_member_remove(self, member: discord.Member):
         """Handle member leaving"""
         logger.info(f"Member {member.name} left {member.guild.name}")
+
+    async def start_sync_task(self):
+        """Start the sync background task"""
+        try:
+            from src.bot.tasks.sync import SyncTask
+
+            if not self.sync_task:
+                self.sync_task = SyncTask(self)
+                await self.sync_task.start()
+                logger.info("Sync task initialized")
+        except Exception as e:
+            logger.error(f"Failed to start sync task: {e}")
+
+    async def stop_sync_task(self):
+        """Stop the sync background task"""
+        try:
+            if self.sync_task:
+                await self.sync_task.stop()
+                self.sync_task = None
+                logger.info("Sync task stopped")
+        except Exception as e:
+            logger.error(f"Error stopping sync task: {e}")
+
+    async def close(self):
+        """Cleanup bot resources on shutdown"""
+        # Stop sync task before closing
+        await self.stop_sync_task()
+        await super().close()
 
 
 async def run_bot():
