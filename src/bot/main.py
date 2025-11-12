@@ -436,6 +436,34 @@ class VelaBot(commands.Bot):
         """Handle member leaving"""
         logger.info(f"Member {member.name} left {member.guild.name}")
 
+    async def start_sync_task(self):
+        """Start the sync background task"""
+        try:
+            from src.bot.tasks.sync import SyncTask
+
+            if not self.sync_task:
+                self.sync_task = SyncTask(self)
+                await self.sync_task.start()
+                logger.info("Sync task initialized")
+        except Exception as e:
+            logger.error(f"Failed to start sync task: {e}")
+
+    async def stop_sync_task(self):
+        """Stop the sync background task"""
+        try:
+            if self.sync_task:
+                await self.sync_task.stop()
+                self.sync_task = None
+                logger.info("Sync task stopped")
+        except Exception as e:
+            logger.error(f"Error stopping sync task: {e}")
+
+    async def close(self):
+        """Cleanup bot resources on shutdown"""
+        # Stop sync task before closing
+        await self.stop_sync_task()
+        await super().close()
+
 
 async def run_bot():
     """Run the Discord bot"""
@@ -475,34 +503,6 @@ async def run_bot():
     except Exception as e:
         logger.error(f"Bot error: {e}")
         print(f"❌ Bot error: {e}")
-
-    async def start_sync_task(self):
-        """Start the sync background task"""
-        try:
-            from src.bot.tasks.sync import SyncTask
-
-            if not self.sync_task:
-                self.sync_task = SyncTask(self)
-                await self.sync_task.start()
-                logger.info("Sync task initialized")
-        except Exception as e:
-            logger.error(f"Failed to start sync task: {e}")
-
-    async def stop_sync_task(self):
-        """Stop the sync background task"""
-        try:
-            if self.sync_task:
-                await self.sync_task.stop()
-                self.sync_task = None
-                logger.info("Sync task stopped")
-        except Exception as e:
-            logger.error(f"Error stopping sync task: {e}")
-
-    async def close(self):
-        """Cleanup bot resources on shutdown"""
-        # Stop sync task before closing
-        await self.stop_sync_task()
-        await super().close()
 
 
 def main():
