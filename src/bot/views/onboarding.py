@@ -672,6 +672,19 @@ class OnboardingApprovalView(discord.ui.View):
             )
             return
 
+        # IMMEDIATELY respond with processing state to avoid timeout
+        original_embed = interaction.message.embeds[0].copy()
+        processing_embed = original_embed.copy()
+        processing_embed.color = discord.Color.gold()
+        processing_embed.title = "⏳ Processing Approval..."
+
+        # Disable the buttons immediately
+        for item in self.children:
+            item.disabled = True
+
+        # Send immediate response (within 3 seconds)
+        await interaction.response.edit_message(embed=processing_embed, view=self)
+
         try:
             # Extract values we need from database before session closes
             member_nickname = None
@@ -688,9 +701,16 @@ class OnboardingApprovalView(discord.ui.View):
                 ).first()
 
                 if not db_member:
-                    await interaction.response.send_message(
-                        "❌ Member not found in database.", ephemeral=True
+                    # Update the message to show error (we already responded)
+                    error_embed = original_embed.copy()
+                    error_embed.color = discord.Color.red()
+                    error_embed.title = "❌ Member Not Found"
+                    error_embed.add_field(
+                        name="Error",
+                        value="Member not found in database. They may have been removed.",
+                        inline=False,
                     )
+                    await interaction.message.edit(embed=error_embed, view=self)
                     return
 
                 # Extract nickname before session closes
@@ -784,7 +804,7 @@ class OnboardingApprovalView(discord.ui.View):
                     )
 
             # Update the embed to show it's been approved
-            original_embed = interaction.message.embeds[0]
+            # Use the original embed we saved earlier and update it
             original_embed.color = discord.Color.green()
             original_embed.title = "✅ Onboarding Request Approved"
             original_embed.add_field(
@@ -794,11 +814,9 @@ class OnboardingApprovalView(discord.ui.View):
             )
             original_embed.timestamp = datetime.utcnow()
 
-            # Disable the buttons
-            for item in self.children:
-                item.disabled = True
-
-            await interaction.response.edit_message(embed=original_embed, view=self)
+            # Buttons are already disabled from earlier
+            # Use normal message edit since we already responded to the interaction
+            await interaction.message.edit(embed=original_embed, view=self)
 
             logger.info(
                 f"Onboarding request for user {self.user_id} approved by {interaction.user.name}"
@@ -806,9 +824,20 @@ class OnboardingApprovalView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"Error approving onboarding request: {e}", exc_info=True)
-            await interaction.response.send_message(
-                f"❌ Error approving request: {str(e)}", ephemeral=True
-            )
+            # Try to update the message to show error state
+            try:
+                error_embed = original_embed.copy()
+                error_embed.color = discord.Color.red()
+                error_embed.title = "❌ Error Processing Approval"
+                error_embed.add_field(
+                    name="Error",
+                    value=f"An error occurred: {str(e)[:200]}",
+                    inline=False,
+                )
+                await interaction.message.edit(embed=error_embed, view=self)
+            except Exception:
+                # If we can't even edit the message, just log it
+                logger.error("Could not update message to show error state")
 
     @discord.ui.button(
         label="Deny",
@@ -846,6 +875,19 @@ class OnboardingApprovalView(discord.ui.View):
             )
             return
 
+        # IMMEDIATELY respond with processing state to avoid timeout
+        original_embed = interaction.message.embeds[0].copy()
+        processing_embed = original_embed.copy()
+        processing_embed.color = discord.Color.gold()
+        processing_embed.title = "⏳ Processing Denial..."
+
+        # Disable the buttons immediately
+        for item in self.children:
+            item.disabled = True
+
+        # Send immediate response (within 3 seconds)
+        await interaction.response.edit_message(embed=processing_embed, view=self)
+
         try:
             with next(get_session()) as session:
                 # Get the member
@@ -857,9 +899,16 @@ class OnboardingApprovalView(discord.ui.View):
                 ).first()
 
                 if not db_member:
-                    await interaction.response.send_message(
-                        "❌ Member not found in database.", ephemeral=True
+                    # Update the message to show error (we already responded)
+                    error_embed = original_embed.copy()
+                    error_embed.color = discord.Color.red()
+                    error_embed.title = "❌ Member Not Found"
+                    error_embed.add_field(
+                        name="Error",
+                        value="Member not found in database. They may have been removed.",
+                        inline=False,
                     )
+                    await interaction.message.edit(embed=error_embed, view=self)
                     return
 
                 # Update member status to denied (-1)
@@ -895,7 +944,7 @@ class OnboardingApprovalView(discord.ui.View):
                     )
 
             # Update the embed to show it's been denied
-            original_embed = interaction.message.embeds[0]
+            # Use the original embed we saved earlier and update it
             original_embed.color = discord.Color.red()
             original_embed.title = "❌ Onboarding Request Denied"
             original_embed.add_field(
@@ -905,11 +954,9 @@ class OnboardingApprovalView(discord.ui.View):
             )
             original_embed.timestamp = datetime.utcnow()
 
-            # Disable the buttons
-            for item in self.children:
-                item.disabled = True
-
-            await interaction.response.edit_message(embed=original_embed, view=self)
+            # Buttons are already disabled from earlier
+            # Use normal message edit since we already responded to the interaction
+            await interaction.message.edit(embed=original_embed, view=self)
 
             logger.info(
                 f"Onboarding request for user {self.user_id} denied by {interaction.user.name}"
@@ -917,6 +964,17 @@ class OnboardingApprovalView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"Error denying onboarding request: {e}", exc_info=True)
-            await interaction.response.send_message(
-                f"❌ Error denying request: {str(e)}", ephemeral=True
-            )
+            # Try to update the message to show error state
+            try:
+                error_embed = original_embed.copy()
+                error_embed.color = discord.Color.red()
+                error_embed.title = "❌ Error Processing Denial"
+                error_embed.add_field(
+                    name="Error",
+                    value=f"An error occurred: {str(e)[:200]}",
+                    inline=False,
+                )
+                await interaction.message.edit(embed=error_embed, view=self)
+            except Exception:
+                # If we can't even edit the message, just log it
+                logger.error("Could not update message to show error state")

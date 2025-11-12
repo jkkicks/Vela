@@ -85,13 +85,13 @@ async def get_users(
     return [MemberResponse.from_orm(m) for m in members]
 
 
-@router.get("/users/{user_id}", response_model=MemberResponse)
+@router.get("/users/{user_id}")
 async def get_user(
     user_id: int,
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
-    """Get single user details"""
+    """Get single user details including approval information"""
     user = session.exec(select(Member).where(Member.id == user_id)).first()
 
     if not user:
@@ -101,7 +101,40 @@ async def get_user(
     if not current_user["is_super_admin"] and user.guild_id != current_user["guild_id"]:
         raise HTTPException(403, "Access denied")
 
-    return MemberResponse.from_orm(user)
+    # Convert to dict for response
+    user_data = MemberResponse.from_orm(user).model_dump()
+
+    # Fetch approval information from audit logs if user is onboarded
+    if user.onboarding_status > 0:
+        # Look for approval audit log
+        # We need to search through all approval logs and check the JSON details
+        approval_logs = session.exec(
+            select(AuditLog)
+            .where(AuditLog.action == "onboarding_approved")
+            .where(AuditLog.guild_id == user.guild_id)
+            .order_by(AuditLog.timestamp.desc())
+        ).all()
+
+        # Find the log for this specific user
+        approval_log = None
+        for log in approval_logs:
+            if log.details and "approved_user_id" in log.details:
+                # Check if the approved_user_id matches this user's Discord ID
+                if str(log.details.get("approved_user_id")) == str(user.user_id):
+                    approval_log = log
+                    break
+
+        if approval_log:
+            user_data["approved_by"] = approval_log.discord_username
+            user_data["approved_at"] = approval_log.timestamp.isoformat()
+        else:
+            user_data["approved_by"] = None
+            user_data["approved_at"] = None
+    else:
+        user_data["approved_by"] = None
+        user_data["approved_at"] = None
+
+    return user_data
 
 
 @router.delete("/users/{user_id}")
