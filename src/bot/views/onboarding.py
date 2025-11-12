@@ -835,7 +835,7 @@ class OnboardingApprovalView(discord.ui.View):
                     inline=False,
                 )
                 await interaction.message.edit(embed=error_embed, view=self)
-            except:
+            except Exception:
                 # If we can't even edit the message, just log it
                 logger.error("Could not update message to show error state")
 
@@ -975,6 +975,6 @@ class OnboardingApprovalView(discord.ui.View):
                     inline=False,
                 )
                 await interaction.message.edit(embed=error_embed, view=self)
-            except:
+            except Exception:
                 # If we can't even edit the message, just log it
                 logger.error("Could not update message to show error state")

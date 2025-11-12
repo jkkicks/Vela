@@ -1,8 +1,7 @@
 """REST API router for JSON endpoints"""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlmodel import Session, select, cast
-from sqlalchemy import String
+from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
 import logging
