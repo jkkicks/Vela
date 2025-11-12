@@ -15,7 +15,7 @@
     <!-- Apps Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Welcome System App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('welcome_enabled') %}border-blue-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg border-2 {% if guild and guild.settings and guild.settings.get('welcome_enabled') %}border-blue-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -80,7 +80,7 @@
         </div>
 
         <!-- Onboarding Module App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('onboarding_enabled') %}border-green-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('onboarding_enabled') %}border-green-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -145,7 +145,7 @@
         </div>
 
         <!-- Member Management App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('member_management_enabled') %}border-purple-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('member_management_enabled') %}border-purple-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -210,7 +210,7 @@
         </div>
 
         <!-- Member Support App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('member_support_enabled') %}border-orange-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('member_support_enabled') %}border-orange-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -275,7 +275,7 @@
         </div>
 
         <!-- Slash Commands App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('slash_commands_enabled') %}border-indigo-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('slash_commands_enabled') %}border-indigo-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -340,7 +340,7 @@
         </div>
 
         <!-- Notifications App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('notifications_enabled') %}border-yellow-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('notifications_enabled') %}border-yellow-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -405,7 +405,7 @@
         </div>
 
         <!-- Sync App -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border-2 {% if guild and guild.settings and guild.settings.get('sync_enabled') %}border-indigo-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg  border-2 {% if guild and guild.settings and guild.settings.get('sync_enabled') %}border-indigo-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
@@ -484,6 +484,9 @@
             </button>
         </div>
     </div>
+
+    <!-- Extra spacing for Safari mobile -->
+    <div class="h-20 md:hidden" aria-hidden="true"></div>
 </div>
 {% endblock %}
 

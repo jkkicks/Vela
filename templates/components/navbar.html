@@ -7,6 +7,14 @@
             this.isDesktop = window.innerWidth >= 768;
             if (this.isDesktop) {
                 this.mobileMenuOpen = false;
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Watch for mobile menu changes to prevent body scroll
+        this.$watch('mobileMenuOpen', value => {
+            if (!this.isDesktop) {
+                document.body.style.overflow = value ? 'hidden' : '';
             }
         });
     }
@@ -88,7 +96,7 @@
          x-transition:leave="transition ease-in duration-150 transform"
          x-transition:leave-start="translate-x-0"
          x-transition:leave-end="-translate-x-full"
-         class="fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-gray-800 shadow-xl z-50 md:hidden overflow-y-auto">
+         class="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-xl z-50 md:hidden overflow-y-auto overscroll-contain">
 
         <!-- Mobile Menu Header -->
         <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
